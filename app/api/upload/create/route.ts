@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validation = createShareSchema.safeParse(body);
     if (!validation.success) {
-      return badRequestResponse(validation.error.errors[0].message);
+      return badRequestResponse(validation.error.issues[0].message);
     }
 
     const { password, expirationHours } = validation.data;
