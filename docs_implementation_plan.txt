@@ -1,0 +1,549 @@
+================================================================================
+TEMPORARY FILE-SHARING MVP - 30 DAY IMPLEMENTATION PLAN
+================================================================================
+
+PROJECT: Link-based image sharing platform with ephemeral storage
+TARGET LAUNCH: 30 days (solo development)
+TECH STACK: Nextjs 16.0.1 (latest) + shadcn + Node.js (22.21.1) + AWS S3 + Supabase
+
+================================================================================
+PHASE 1: PROJECT SETUP & INFRASTRUCTURE (Days 1-3)
+================================================================================
+
+DAY 1: Environment & AWS Setup
+----------------------------------
+[ ] Create AWS account + set up S3 bucket
+    - Bucket name: "sharespace-uploads" or similar
+    - Enable versioning: OFF
+    - Enable CORS for browser uploads
+    - Create IAM user with S3-only permissions
+    - Generate AWS Access Key ID & Secret
+
+[ ] Create GitHub repository
+    - Initialize .gitignore (node_modules, .env, dist/)
+    - Add README with project overview
+
+[ ] Set up project structure locally
+    Folder structure:
+    /frontend (nextjs + shadcn)
+    /backend (Node.js)
+    /docs (README, deployment notes)
+
+DAY 2: Backend Foundation
+----------------------------------
+[ ] Initialize Node.js backend
+    npm init -y
+    npm install express cors dotenv aws-sdk@3 uuid nodemailer (or resend)
+
+[ ] Set up Express server basics
+    - Create /server.js with basic Express app
+    - Configure CORS for frontend localhost + production domain
+    - Set up .env file for AWS credentials, database URL, email config
+
+[ ] Initialize PostgreSQL (or Supabase)
+    Option A: Supabase (recommended for MVP)
+        - Create Supabase project (free tier)
+        - Create schema: files table with columns:
+          * id (UUID primary key)
+          * shareLink (unique, varchar)
+          * password (hashed, optional)
+          * uploadedAt (timestamp)
+          * expiresAt (timestamp)
+          * createdBy (session ID or anonymous)
+          * fileCount (int, counter)
+
+    Option B: PostgreSQL on AWS RDS
+        - Create RDS instance (free tier or micro)
+        - Create same schema
+
+[ ] Set up Magic Link Authentication
+    - Create /auth.js endpoint for magic link generation
+    - Generate random 20-char alphanumeric share code
+    - Store in DB with timestamp
+    - If password: hash with bcrypt before storing
+
+DAY 3: Frontend Scaffolding
+----------------------------------
+[ ] Initialize React + Vite frontend
+    npm create vite@latest frontend -- --template react
+    cd frontend && npm install
+
+[ ] Install UI libraries & dependencies
+    npm install tailwindcss shadcn-ui react-dropzone react-icons axios
+
+[ ] Create basic project structure
+    /src
+      /components
+        - UploadForm.jsx (drag-drop upload UI)
+        - Gallery.jsx (image grid display)
+        - DownloadButton.jsx
+      /pages
+        - Upload.jsx (main upload page)
+        - View.jsx (viewing shared files, accessed via magic link)
+      /utils
+        - api.js (axios instance for backend calls)
+        - helpers.js (date formatting, file size conversion)
+      App.jsx (router setup with React Router)
+
+[ ] Set up basic routing
+    - Route 1: / → Upload page (create new share)
+    - Route 2: /share/:shareLink → View shared files (with optional password prompt)
+
+================================================================================
+PHASE 2: CORE FUNCTIONALITY - UPLOAD & AUTHENTICATION (Days 4-7)
+================================================================================
+
+DAY 4: Upload Form & Magic Link Generation
+----------------------------------
+BACKEND:
+[ ] Create POST /api/upload/create endpoint
+    - Accept multipart form data (images)
+    - Generate unique shareLink (UUID or custom code)
+    - Optional: Accept password, set expiration time (24h, 48h, 7d, custom)
+    - Store metadata in DB (file names, sizes, MIME types)
+    - Return shareLink + expiresAt timestamp to frontend
+
+[ ] Create POST /api/upload/files endpoint
+    - Receive image file + shareLink
+    - Validate shareLink exists in DB
+    - Generate presigned URL from AWS S3
+    - Upload file to S3 with key: /uploads/{shareLink}/{filename}
+    - Store file metadata in DB
+    - Return success + file preview URL
+
+FRONTEND:
+[ ] Build UploadForm component
+    - React-dropzone for drag-and-drop
+    - File input with multiple file selection
+    - Display selected files before upload
+    - Show upload progress bar
+
+[ ] Create settings panel
+    - Expiration time selector (24h, 48h, 7d, custom)
+    - Optional password input
+    - Share link generation button
+
+[ ] Display share link after upload
+    - Show "Your link: [magic link]"
+    - Copy-to-clipboard button
+    - QR code preview (use qrcode.react library)
+
+DAY 5: Magic Link + Password Protection
+----------------------------------
+BACKEND:
+[ ] Create POST /api/auth/generate endpoint
+    - Generate 24-char random token
+    - If password provided: hash with bcrypt, store in DB
+    - Set expiration time in DB
+    - Return shareLink (can be short code or full UUID)
+
+[ ] Create GET /api/auth/verify endpoint
+    - Accept shareLink + optional password
+    - Check if shareLink exists in DB
+    - Check if expired (expiresAt > now)
+    - If password: verify hash
+    - Return session token (JWT or simple session ID)
+    - Set httpOnly cookie for authentication
+
+[ ] Create middleware: authenticateShare()
+    - Verify session token or shareLink + password
+    - Attach shareLink to request for later use
+
+FRONTEND:
+[ ] Create password prompt component
+    - If share has password: show input modal before viewing gallery
+    - Send password to backend for verification
+    - Store session token in localStorage/cookie
+
+[ ] Redirect after auth
+    - After password verification, render Gallery component
+
+DAY 6: Image Gallery & Preview
+----------------------------------
+BACKEND:
+[ ] Create GET /api/share/:shareLink/files endpoint
+    - Authenticate request (password check)
+    - Query all files with matching shareLink from DB
+    - Return file metadata: name, size, uploadedAt, presignedUrl (expires in 24h)
+    - Include share info: expiresAt, fileCount
+
+FRONTEND:
+[ ] Build Gallery component
+    - Fetch files from /api/share/{shareLink}/files
+    - Display image grid (4 columns, responsive)
+    - Show file names, sizes, upload dates
+    - Lazy load images (use Intersection Observer)
+    - In-browser preview on click (modal or lightbox)
+
+[ ] Create ImagePreview modal
+    - Full-screen image view
+    - Navigation (next/prev)
+    - Download button per image
+    - Close button
+
+DAY 7: Download Functionality
+----------------------------------
+BACKEND:
+[ ] Create GET /api/share/:shareLink/download/:filename endpoint
+    - Authenticate
+    - Generate presigned download URL from S3 (expires in 1 hour)
+    - Log download event (optional: track popularity)
+    - Redirect to presigned S3 URL
+    OR return presigned URL as JSON for frontend redirect
+
+FRONTEND:
+[ ] Add download button to Gallery
+    - Single image download: GET /api/share/{shareLink}/download/{filename}
+    - Browser initiates download automatically
+    - Show download progress (optional)
+
+[ ] Add bulk download (nice-to-have for later)
+    - For MVP: skip this, add in Phase 3
+
+================================================================================
+PHASE 3: EXPIRATION & CLEANUP LOGIC (Days 8-10)
+================================================================================
+
+DAY 8: Database Cleanup & Scheduled Tasks
+----------------------------------
+BACKEND:
+[ ] Install: node-cron (for scheduled tasks)
+    npm install node-cron
+
+[ ] Create scheduled cleanup job
+    - Run daily at 2 AM UTC
+    - Query all records where expiresAt < now()
+    - For each expired share:
+      * List all files in S3 bucket under /uploads/{shareLink}/
+      * Delete files from S3 (AWS SDK DeleteObject or DeleteObjects batch)
+      * Delete DB records
+    - Log cleanup results
+
+[ ] Add expiration check to auth middleware
+    - When user accesses /share/:shareLink, verify expiresAt hasn't passed
+    - If expired: return 410 Gone error with message "Share has expired"
+
+FRONTEND:
+[ ] Display expiration timer
+    - Show "Expires in X hours Y minutes"
+    - Update in real-time (setInterval every minute)
+    - Change color to red when < 6 hours remaining
+    - Show "Expired" message if past expiration
+
+[ ] Handle 410 error gracefully
+    - Redirect to /expired page with friendly message
+    - Option to create new share
+
+DAY 9: S3 Lifecycle Policies (Backup Cleanup)
+----------------------------------
+BACKEND & AWS:
+[ ] Configure S3 lifecycle policy
+    - Set rule: Delete all objects older than X days
+    - This is a safety net in case DB cleanup fails
+    - Keep files for max 30 days
+
+[ ] Test cleanup flow end-to-end
+    - Create test share with 24h expiration
+    - Upload test images
+    - Wait 30 minutes, manually trigger cleanup
+    - Verify files deleted from S3
+    - Verify DB records removed
+
+[ ] Add logging
+    - Log all cleanup events to console + file
+    - Include: timestamps, file count deleted, errors
+
+DAY 10: Error Handling & Edge Cases
+----------------------------------
+[ ] Handle edge cases:
+    - What if file upload fails mid-way?
+      * Implement retry logic on frontend
+      * Clean up partial uploads from S3
+    
+    - What if user closes browser during upload?
+      * Presigned URL expires after 1 hour
+      * Orphaned files auto-delete via lifecycle policy
+    
+    - What if DB goes down?
+      * Return 503 Service Unavailable
+      * Show user-friendly error message
+    
+    - What if S3 goes down?
+      * Catch AWS SDK errors
+      * Queue uploads for retry (simple queue in memory for MVP)
+
+[ ] Test authentication bypass attempts
+    - Try accessing share without password (should fail if password set)
+    - Try accessing expired share (should fail)
+    - Try accessing fake shareLink (should 404)
+
+================================================================================
+PHASE 4: TESTING, POLISH & DEPLOYMENT (Days 11-20)
+================================================================================
+
+DAY 11-12: Unit & Integration Testing
+----------------------------------
+[ ] Install testing libraries
+    npm install --save-dev vitest @testing-library/react jest-mock-extended
+
+BACKEND:
+[ ] Write tests for auth endpoints
+    - Test magic link generation (randomness, uniqueness)
+    - Test password verification (correct, incorrect, no password)
+    - Test expiration check logic
+
+[ ] Write tests for upload endpoints
+    - Test file upload to S3 (mock AWS SDK)
+    - Test metadata storage in DB
+    - Test presigned URL generation
+
+FRONTEND:
+[ ] Write tests for components
+    - UploadForm: test file selection, drag-drop
+    - Gallery: test image grid rendering, lazy loading
+    - PasswordPrompt: test form submission
+
+DAY 13: Security Hardening
+----------------------------------
+[ ] Backend security checks
+    - Sanitize all user inputs (file names, password)
+    - Validate file MIME types (only images for MVP)
+    - Enforce max file size (e.g., 100MB per file)
+    - Rate limit API endpoints (e.g., 10 uploads/min per IP)
+    - Use helmet.js for HTTP security headers
+
+[ ] AWS S3 security
+    - Block public access (all bucket policies set to private)
+    - Enable S3 encryption (default SSE-S3)
+    - Enable versioning off to save costs
+    - Set bucket to delete all old versions
+
+[ ] Environment variables
+    - Never commit .env file
+    - Use .env.example with dummy values for reference
+    - Document all required env vars
+
+DAY 14-15: UI/UX Polish
+----------------------------------
+FRONTEND:
+[ ] Responsive design
+    - Test on mobile (iPhone, Android)
+    - Test on tablet, desktop
+    - Adjust grid layout for small screens (2 columns on mobile)
+
+[ ] Accessibility
+    - Add alt text to images
+    - Ensure buttons are keyboard accessible
+    - Use semantic HTML
+
+[ ] Loading states
+    - Show spinner during file upload
+    - Show skeleton loaders while fetching images
+    - Disable buttons during async operations
+
+[ ] Error messages
+    - Show user-friendly errors (not raw API responses)
+    - Toast notifications for success/error feedback
+
+DAY 16: Performance Optimization
+----------------------------------
+[ ] Frontend optimization
+    - Code splitting (separate page components)
+    - Lazy load images (Intersection Observer API)
+    - Minify and compress assets
+
+[ ] Backend optimization
+    - Add database indexing on shareLink, expiresAt
+    - Cache file metadata in memory or Redis (optional for MVP)
+    - Compress image files in S3 (optional, keep lossless for MVP)
+
+[ ] Monitor bundle size
+    - Run: npm run build
+    - Keep total bundle under 200KB gzipped
+
+DAY 17-18: Deployment Prep
+----------------------------------
+[ ] Backend deployment (Vercel, Railway, or Render)
+    - Connect GitHub repo
+    - Set environment variables in deployment platform
+    - Configure auto-deploy on push to main branch
+    - Test deployment URL
+
+[ ] Frontend deployment (Vercel)
+    - Deploy React app to Vercel
+    - Configure custom domain (optional for MVP)
+    - Set backend API URL in production env
+
+[ ] Database setup
+    - If using Supabase: already hosted, just verify backups
+    - If using RDS: set up automated backups, enable multi-AZ (optional)
+
+[ ] Domain setup (optional for MVP)
+    - Buy domain on Namecheap/GoDaddy (~$12/year)
+    - Point DNS to deployment platform
+
+DAY 19: End-to-End Testing
+----------------------------------
+[ ] Test full user flow in production
+    - Create new share with images
+    - Copy link, share with friend
+    - Friend accesses link, downloads images
+    - Wait for expiration, verify access denied
+    - Test with password protection
+
+[ ] Test on multiple browsers
+    - Chrome, Firefox, Safari, Edge
+    - Mobile browsers
+
+[ ] Load testing (optional for MVP)
+    - Simulate 50 concurrent users
+    - Verify no errors, acceptable response times
+
+DAY 20: Documentation & Launch Prep
+----------------------------------
+[ ] Write README.md
+    - Project overview
+    - How to use (for users)
+    - Tech stack
+    - API documentation (for future devs)
+    - Deployment instructions
+
+[ ] Create DEPLOYMENT.md
+    - Step-by-step deployment guide
+    - Environment variables checklist
+    - How to run locally for development
+
+[ ] Create issue templates
+    - Bug report template
+    - Feature request template
+
+[ ] Set up monitoring
+    - Enable error tracking (Sentry or similar, free tier)
+    - Set up basic analytics (optional)
+
+================================================================================
+PHASE 5: BUFFER & ITERATION (Days 21-30)
+================================================================================
+
+Days 21-30: Reserve for:
+----------------------------------
+[ ] Bug fixes discovered during testing
+[ ] Performance improvements based on real usage
+[ ] UI refinements based on user feedback (if beta tested)
+[ ] Additional nice-to-haves based on priority:
+    - Bulk download as ZIP
+    - Share statistics (view count, download count)
+    - QR code generation
+    - Email summary of shared files
+[ ] Marketing prep (landing page, social media post)
+[ ] Beta testing with 5-10 real users (friends, event attendees)
+[ ] Final deployment & go-live
+
+================================================================================
+DELIVERABLES BY PHASE
+================================================================================
+
+END OF DAY 3: Scaffolding complete
+  - AWS S3 bucket ready
+  - Database schema created
+  - Frontend + backend folder structure
+  - Basic routing in place
+
+END OF DAY 7: Core MVP complete
+  - Users can upload images
+  - Users can share link with magic link + optional password
+  - Users can view gallery of shared images
+  - Users can download images
+  - Expiration time can be set
+
+END OF DAY 10: Production-ready MVP
+  - Auto-cleanup of expired shares
+  - Error handling + edge cases
+  - Security checks in place
+
+END OF DAY 20: Fully tested & deployed
+  - Live on production domain
+  - Monitored for errors
+  - Documentation complete
+
+END OF DAY 30: Launch ready
+  - Ready for public/beta launch
+  - All bugs fixed
+  - Feedback incorporated
+
+================================================================================
+KEY METRICS TO TRACK
+================================================================================
+
+- Upload time (target: < 5 seconds for 10MB image)
+- Download time (target: < 3 seconds for 10MB image)
+- Page load time (target: < 2 seconds)
+- API response time (target: < 500ms)
+- S3 storage cost (track weekly)
+- Database query performance (monitor indexes)
+
+================================================================================
+CRITICAL CHECKLIST BEFORE LAUNCH
+================================================================================
+
+[ ] All images stored lossless (PNG, JPEG quality 95%+)
+[ ] Expired shares auto-delete from S3
+[ ] Database records deleted after expiration
+[ ] No user data persists after expiration
+[ ] Password hashing working (bcrypt or similar)
+[ ] CORS properly configured for frontend domain
+[ ] AWS credentials not exposed in code
+[ ] Frontend env vars for production API URL set
+[ ] Error tracking (Sentry) configured
+[ ] Backup strategy for database verified
+[ ] SSL/HTTPS enabled on all endpoints
+[ ] Rate limiting active on upload endpoint
+[ ] Tested with 50+ concurrent users (stress test)
+[ ] Tested on mobile + desktop browsers
+[ ] README complete with usage instructions
+[ ] Deployment runbook ready
+
+================================================================================
+POTENTIAL RISKS & MITIGATIONS
+================================================================================
+
+RISK: S3 upload fails, orphaned files remain
+MITIGATION: Implement cleanup job, set S3 lifecycle policy to 30 days
+
+RISK: Database gets too large with historical records
+MITIGATION: Archive/delete old shares monthly, add DB indexing
+
+RISK: User forgets to set expiration, shares stay forever
+MITIGATION: Default to 48-hour expiration, show prominent timer
+
+RISK: Password brute force attacks
+MITIGATION: Rate limit password attempts, add CAPTCHA after 5 failures
+
+RISK: AWS bill unexpectedly high
+MITIGATION: Set CloudWatch billing alerts, monitor usage weekly
+
+================================================================================
+POST-LAUNCH ROADMAP (Phase 2+)
+================================================================================
+
+WEEK 2-3 (Post-Launch):
+[ ] Video support (upload, preview, download)
+[ ] Bulk download as ZIP
+[ ] Share statistics (view count, download count, unique viewers)
+[ ] Email notifications (share created, files downloaded)
+
+MONTH 2:
+[ ] Monetization: Freemium tier (free: 10 uploads/month, Pro: unlimited)
+[ ] Analytics dashboard (user analytics, popular files)
+[ ] Advanced features: Comments on files, reactions
+[ ] Mobile app (React Native or Flutter)
+
+MONTH 3+:
+[ ] Team collaboration features (multiple uploaders to same share)
+[ ] API for third-party integrations
+[ ] White-label version
+[ ] AI-powered tagging, search
+
+================================================================================
+END OF PLAN
+================================================================================
