@@ -68,7 +68,9 @@ export default function HomePage() {
         });
 
         if (!registerResponse.ok) {
-          throw new Error(`Failed to register file: ${file.name}`);
+          const errorData = await registerResponse.json();
+          console.error('Register file error:', errorData);
+          throw new Error(`Failed to register file ${file.name}: ${errorData.message || errorData.error || 'Unknown error'}`);
         }
 
         const { previewUrl } = await registerResponse.json();
@@ -91,7 +93,8 @@ export default function HomePage() {
       setShareLink(fullLink);
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload files. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload files. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsUploading(false);
     }
