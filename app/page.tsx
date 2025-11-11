@@ -2,6 +2,7 @@
 
 /**
  * Home Page - File Upload and Share Creation
+ * Apple-inspired minimal design with squared corners
  */
 
 import { useState } from 'react';
@@ -12,7 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { FiCopy, FiCheck, FiShare2 } from 'react-icons/fi';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
+import { Container } from '@/components/layout/container';
+import { FiCopy, FiCheck } from 'react-icons/fi';
 import { APP_CONFIG, SHARE_CONFIG } from '@/config/constants';
 
 export default function HomePage() {
@@ -108,140 +113,153 @@ export default function HomePage() {
 
   if (shareLink) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FiCheck className="w-8 h-8 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl">Share Created!</CardTitle>
-            <CardDescription>
-              Your files are ready to share
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Share Link</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  value={shareLink}
-                  readOnly
-                  className="font-mono text-sm"
-                />
-                <Button
-                  onClick={copyToClipboard}
-                  variant="outline"
-                  size="icon"
-                >
-                  {copied ? <FiCheck className="w-4 h-4" /> : <FiCopy className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
+      <>
+        <Header />
+        <main className="min-h-screen pt-20 pb-12">
+          <Container size="md">
+            <div className="flex min-h-[calc(100vh-200px)] items-center justify-center">
+              <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center bg-success-bg">
+                    <FiCheck className="h-8 w-8 text-success" />
+                  </div>
+                  <CardTitle className="text-2xl">Share Created</CardTitle>
+                  <CardDescription>
+                    Your files are ready to share
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Share Link</Label>
+                    <div className="mt-2 flex gap-2">
+                      <Input
+                        value={shareLink}
+                        readOnly
+                        className="font-mono text-sm"
+                      />
+                      <Button
+                        onClick={copyToClipboard}
+                        variant="outline"
+                        size="icon"
+                      >
+                        {copied ? <FiCheck className="h-4 w-4" /> : <FiCopy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
-              <p className="font-medium mb-1">Important:</p>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Share will expire in {expirationHours} hours</li>
-                {password && <li>Password protected</li>}
-                <li>Files uploaded: {files.length}</li>
-              </ul>
-            </div>
+                  <Alert>
+                    <AlertDescription className="space-y-1 text-sm">
+                      <p className="font-medium">Important:</p>
+                      <ul className="list-inside list-disc space-y-1 text-xs">
+                        <li>Share expires in {expirationHours} hours</li>
+                        {password && <li>Password protected</li>}
+                        <li>Files uploaded: {files.length}</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
 
-            <Button
-              onClick={() => {
-                setShareLink('');
-                setFiles([]);
-                setPassword('');
-                setUploadProgress(0);
-              }}
-              className="w-full"
-            >
-              Create Another Share
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+                  <Button
+                    onClick={() => {
+                      setShareLink('');
+                      setFiles([]);
+                      setPassword('');
+                      setUploadProgress(0);
+                    }}
+                    className="w-full"
+                  >
+                    Create Another Share
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </Container>
+        </main>
+        <Footer />
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-3xl mx-auto py-8">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <FiShare2 className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold">{APP_CONFIG.name}</h1>
-          </div>
-          <p className="text-gray-600">{APP_CONFIG.description}</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload & Share Files</CardTitle>
-            <CardDescription>
-              Create a temporary share link for your files
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <FileUpload
-              onFilesSelected={setFiles}
-              disabled={isUploading}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password (Optional)</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isUploading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="expiration">Expiration</Label>
-                <Select
-                  value={expirationHours}
-                  onValueChange={setExpirationHours}
-                  disabled={isUploading}
-                >
-                  <SelectTrigger id="expiration">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="24">24 hours</SelectItem>
-                    <SelectItem value="48">48 hours</SelectItem>
-                    <SelectItem value="72">3 days</SelectItem>
-                    <SelectItem value="168">7 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+    <>
+      <Header />
+      <main className="min-h-screen pt-20 pb-12">
+        <Container>
+          <div className="mx-auto max-w-3xl py-8">
+            <div className="mb-8 text-center">
+              <h1 className="mb-2 text-4xl font-bold tracking-tight">{APP_CONFIG.name}</h1>
+              <p className="text-secondary">{APP_CONFIG.description}</p>
             </div>
 
-            {isUploading && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Uploading...</span>
-                  <span>{Math.round(uploadProgress)}%</span>
-                </div>
-                <Progress value={uploadProgress} />
-              </div>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Upload & Share Files</CardTitle>
+                <CardDescription>
+                  Create a temporary share link for your files
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FileUpload
+                  onFilesSelected={setFiles}
+                  disabled={isUploading}
+                />
 
-            <Button
-              onClick={handleCreateShare}
-              disabled={files.length === 0 || isUploading}
-              className="w-full"
-              size="lg"
-            >
-              {isUploading ? 'Uploading...' : 'Create Share Link'}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password (Optional)</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isUploading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="expiration">Expiration</Label>
+                    <Select
+                      value={expirationHours}
+                      onValueChange={setExpirationHours}
+                      disabled={isUploading}
+                    >
+                      <SelectTrigger id="expiration">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="24">24 hours</SelectItem>
+                        <SelectItem value="48">48 hours</SelectItem>
+                        <SelectItem value="72">3 days</SelectItem>
+                        <SelectItem value="168">7 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {isUploading && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Uploading...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <Progress value={uploadProgress} />
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleCreateShare}
+                  disabled={files.length === 0 || isUploading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isUploading ? 'Uploading...' : 'Create Share Link'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </Container>
+      </main>
+      <Footer />
+    </>
   );
 }

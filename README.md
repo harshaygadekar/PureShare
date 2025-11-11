@@ -1,19 +1,20 @@
-# PureShare 🚀
+# PureShare
 
-**Temporary file sharing with ephemeral storage** - A secure, time-limited file sharing platform built with Next.js, AWS S3, and Supabase.
+Secure, temporary file sharing platform with ephemeral storage. Built with Next.js, AWS S3, and Supabase.
 
-## ✨ Features
+## Features
 
-- 📤 **Drag & Drop Upload** - Intuitive file upload interface
-- 🔗 **Share Links** - Generate unique, short share links
-- 🔒 **Password Protection** - Optional password protection for shares
-- ⏰ **Auto-Expiration** - Files automatically deleted after expiration
-- 🖼️ **Image Gallery** - Beautiful grid view for shared images
-- 📱 **Responsive Design** - Works on desktop and mobile
-- 🎨 **Modern UI** - Built with shadcn/ui and Tailwind CSS
-- ⚡ **Fast & Secure** - Server-side rendered with Next.js 16.0.1
+- Drag & drop file upload interface
+- Generate unique, time-limited share links
+- Optional password protection
+- Automatic file expiration and deletion
+- Image gallery with preview
+- Responsive design for all devices
+- Modern UI with Tailwind CSS
+- Real-time password strength validation
+- User authentication system
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework**: Next.js 16.0.1 (App Router)
 - **Language**: TypeScript
@@ -21,43 +22,30 @@
 - **UI Components**: shadcn/ui
 - **Database**: Supabase (PostgreSQL)
 - **Storage**: AWS S3
-- **File Uploads**: react-dropzone
-- **Icons**: react-icons
+- **Cache/Rate Limiting**: Upstash Redis
+- **Authentication**: JWT with bcrypt
 - **Validation**: Zod
-- **Authentication**: bcryptjs
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Node.js 22.21.1 or higher
-- npm or yarn
-- AWS Account (for S3)
+- AWS Account (S3)
 - Supabase Account
+- Upstash Redis Account
 
-## 🚀 Getting Started
+## Getting Started
 
-### 1. Clone the repository
+### 1. Clone and install
 
 ```bash
 git clone <your-repo-url>
 cd pureshare
-```
-
-### 2. Install dependencies
-
-```bash
 npm install
 ```
 
-### 3. Set up external services
+### 2. Configure environment variables
 
-Follow the detailed setup guide in [SETUP.md](./SETUP.md) to configure:
-- AWS S3 bucket
-- Supabase database
-- Environment variables
-
-### 4. Configure environment variables
-
-Copy `.env.example` to `.env.local` and fill in your credentials:
+Copy `.env.example` to `.env.local` and configure:
 
 ```bash
 cp .env.example .env.local
@@ -71,128 +59,112 @@ Required variables:
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_S3_BUCKET_NAME`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `JWT_SECRET`
+- `NEXT_PUBLIC_APP_URL`
 
-### 5. Run the development server
+### 3. Run development server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the application.
+Open [http://localhost:3000](http://localhost:3000)
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 pureshare/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   ├── upload/        # Upload endpoints
-│   │   └── share/         # Share endpoints
-│   ├── share/[id]/        # Share viewing page
-│   └── page.tsx           # Home page (upload)
+├── app/
+│   ├── (auth)/              # Authentication pages
+│   ├── (marketing)/         # Landing & marketing pages
+│   ├── api/                 # API routes
+│   │   ├── auth/           # Auth endpoints
+│   │   ├── upload/         # Upload endpoints
+│   │   └── share/          # Share endpoints
+│   └── share/[id]/         # Share viewing page
 ├── components/
-│   ├── ui/                # shadcn/ui primitives
-│   ├── features/          # Feature components
-│   └── layouts/           # Layout components
+│   ├── auth/               # Auth forms
+│   ├── marketing/          # Marketing sections
+│   ├── layout/             # Layout components
+│   ├── features/           # Feature components
+│   ├── shared/             # Shared utilities
+│   └── ui/                 # UI primitives
 ├── lib/
-│   ├── db/                # Database clients
-│   ├── storage/           # S3 utilities
-│   ├── auth/              # Authentication
-│   ├── validations/       # Zod schemas
-│   └── utils/             # Helper functions
-├── types/
-│   ├── api.ts             # API types
-│   └── database.ts        # Database types
-├── config/
-│   └── constants.ts       # App configuration
-└── docs_implementation_plan.txt  # 30-day roadmap
+│   ├── auth/               # Authentication logic
+│   ├── middleware/         # Rate limiting & security
+│   ├── security/           # Sanitization utilities
+│   ├── db/                 # Database clients
+│   └── storage/            # S3 utilities
+└── config/
+    ├── constants.ts        # App configuration
+    └── design-tokens.ts    # Design system
 ```
 
-## 🔑 Key Features Explained
+## API Endpoints
 
-### File Upload Flow
-1. User selects files via drag-and-drop or file picker
-2. Creates a share with optional password and expiration time
-3. Files are uploaded directly to AWS S3 using presigned URLs
-4. Metadata stored in Supabase database
-5. Unique share link generated and displayed
+### Authentication
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/refresh` - Refresh token
+- `POST /api/auth/verify-email` - Email verification
+- `GET /api/health` - Health check
 
-### Share Viewing Flow
-1. User accesses share link
-2. Password verification if required
-3. Files displayed in responsive grid
-4. Click to preview in modal
-5. Download individual files
-
-### Auto-Expiration
-- Shares expire based on user-selected time (24h, 48h, 7 days, etc.)
-- S3 lifecycle policy automatically deletes old files
-- Database cleanup job (future: implement cron)
-
-## 🎨 API Endpoints
-
+### File Sharing
 - `POST /api/upload/create` - Create new share
 - `POST /api/upload/files` - Upload file metadata
 - `POST /api/share/[id]/verify` - Verify share access
 - `GET /api/share/[id]/files` - Get all files in share
 - `GET /api/share/[id]/download/[fileId]` - Download file
 
-## 🔒 Security Features
+## Security Features
 
-- ✅ Password hashing with bcrypt
-- ✅ Presigned S3 URLs (time-limited)
-- ✅ Input validation with Zod
-- ✅ Private S3 bucket (no public access)
-- ✅ Row Level Security in Supabase
-- ✅ Environment variables for secrets
+- Password hashing with bcrypt (10 rounds)
+- JWT-based session management
+- Rate limiting with Redis (7 different limiters)
+- Content Security Policy headers
+- XSS protection and input sanitization
+- CORS configuration
+- Private S3 bucket with presigned URLs
+- Row Level Security in Supabase
+- Strong password requirements (12+ chars, complexity)
 
-## 🚢 Deployment
+## Deployment
 
-### Vercel (Recommended)
+### Vercel
 
-1. Push code to GitHub
+1. Push to GitHub
 2. Import project in Vercel
 3. Add environment variables
 4. Deploy
 
-### Environment Variables for Production
+### Production Environment
 
-Update `NEXT_PUBLIC_APP_URL` to your production domain:
-```
-NEXT_PUBLIC_APP_URL=https://your-domain.com
-```
+Update `NEXT_PUBLIC_APP_URL` to your production domain.
 
-## 📝 Development Roadmap
+## Development Status
 
-See [docs_implementation_plan.txt](./docs_implementation_plan.txt) for the complete 30-day implementation plan.
+See [PRODUCTION-PLAN.md](./PRODUCTION-PLAN.md) for detailed progress tracking.
 
-### Completed ✅
-- Day 1: Project setup and infrastructure
-- Day 2-3: Core API routes
-- Day 4-5: Upload and share viewing pages
-- Day 6: Password protection UI
+### Completed (71%)
+- Phase 1: Foundation & Security
+- Phase 2: Design System & Components
+- Phase 3: Landing Page
+- Phase 4: Authentication UI
 
-### Next Steps 🔜
-- Implement cleanup cron job
-- Add bulk download (ZIP)
-- Share statistics and analytics
-- Video file support
-- Mobile app
+### In Progress
+- Phase 5: User Dashboard
+- Phase 6: Enhanced Features
+- Phase 7: Email System
+- Phase 8: Monitoring & Cleanup
+- Phase 9: Production Deployment
 
-## 🤝 Contributing
+## License
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-MIT License - feel free to use this project for personal or commercial purposes.
-
-## 🙏 Acknowledgments
-
-- Built with [Next.js](https://nextjs.org)
-- UI components from [shadcn/ui](https://ui.shadcn.com)
-- Icons from [react-icons](https://react-icons.github.io/react-icons/)
+MIT License
 
 ---
 
-**Note**: This is an MVP built as part of a 30-day implementation plan. See [SETUP.md](./SETUP.md) for detailed setup instructions.
+Built with Next.js and shadcn/ui
