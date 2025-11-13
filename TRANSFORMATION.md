@@ -9,10 +9,11 @@ This document outlines the revolutionary UI transformation implemented for PureS
 The middleware was redirecting authenticated users from auth routes to `/dashboard`, which didn't exist, causing 404 errors.
 
 ### Solution
-**File**: `/home/hrsh/MEGA_PROJECTS/pureshare/middleware.ts`
+**File**: `/home/hrsh/MEGA_PROJECTS/pureshare/proxy.ts` (formerly `middleware.ts`, renamed for Next.js 16)
 - Changed redirect target from `/dashboard` to `/upload` (line 58)
 - This makes the upload page the primary authenticated destination
 - More honest and focused: PureShare is about uploading and sharing, not managing dashboards
+- Updated to Next.js 16 `proxy.ts` convention
 
 ## Revolutionary UI Enhancements
 
@@ -224,7 +225,7 @@ All animations use:
 
 ## Files Modified
 
-1. `/middleware.ts` - Fixed routing issue
+1. `/proxy.ts` (formerly `/middleware.ts`) - Fixed routing issue, updated to Next.js 16 convention
 2. `/app/page.tsx` - Revolutionary upload interface
 3. `/app/globals.css` - Added gradient animations
 4. `/components/marketing/hero.tsx` - Animated hero section

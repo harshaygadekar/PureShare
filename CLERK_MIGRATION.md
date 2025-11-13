@@ -46,7 +46,7 @@ PureShare has been successfully migrated from a custom JWT-based authentication 
 ### 🔄 Updated
 
 1. **Core Files**
-   - `middleware.ts` - Now uses Clerk's authentication
+   - `proxy.ts` (formerly `middleware.ts`) - Now uses Clerk's authentication with Next.js 16 convention
    - `app/layout.tsx` - Wrapped with ClerkProvider
    - `components/layout/header.tsx` - Uses Clerk components with custom styling
    - `lib/utils/env-validation.ts` - Updated to require Clerk keys instead of JWT
@@ -246,9 +246,9 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 ```
 
-### Middleware Deprecation Warning
+### Middleware Convention (Updated for Next.js 16)
 
-Next.js 16 shows a warning about "middleware" → "proxy" convention. This is cosmetic and doesn't affect functionality. Future updates may rename the file.
+The middleware file has been renamed from `middleware.ts` to `proxy.ts` to follow Next.js 16 conventions. This eliminates the deprecation warning while maintaining all functionality.
 
 ---
 
