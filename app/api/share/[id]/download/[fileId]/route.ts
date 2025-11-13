@@ -6,7 +6,7 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/db/supabase';
 import { getDownloadPresignedUrl } from '@/lib/storage/s3';
-import { isValidShareLink } from '@/lib/auth/share-link';
+import { isValidShareLink } from '@/lib/security/share-link';
 import {
   successResponse,
   badRequestResponse,

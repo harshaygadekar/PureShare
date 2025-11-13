@@ -1,17 +1,17 @@
 'use client';
 
 /**
- * File Upload Component with Drag and Drop
- * Uses react-dropzone and shadcn/ui components
+ * File Upload Component with Revolutionary Drag and Drop
+ * Magical interactions with Framer Motion
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { FiUploadCloud, FiFile, FiX } from 'react-icons/fi';
+import { LiquidButton } from '@/components/ui/liquid-glass-button';
+import { FiUploadCloud, FiFile, FiX, FiImage } from 'react-icons/fi';
 import { FILE_CONFIG } from '@/config/constants';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface FileWithPreview extends File {
   preview?: string;
@@ -47,10 +47,27 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
   });
 
   const removeFile = (index: number) => {
+    // Revoke the object URL before removing to prevent memory leak
+    const fileToRemove = selectedFiles[index];
+    if (fileToRemove.preview) {
+      URL.revokeObjectURL(fileToRemove.preview);
+    }
+
     const newFiles = selectedFiles.filter((_, i) => i !== index);
     setSelectedFiles(newFiles);
     onFilesSelected(newFiles);
   };
+
+  // Cleanup: Revoke all object URLs on component unmount
+  useEffect(() => {
+    return () => {
+      selectedFiles.forEach(file => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+      });
+    };
+  }, [selectedFiles]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -60,72 +77,171 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const rootProps = getRootProps();
+
   return (
     <div className="w-full space-y-4">
-      <Card
-        {...getRootProps()}
-        className={`border-2 border-dashed transition-colors cursor-pointer p-8 ${
+      <div
+        {...rootProps}
+        className={`relative overflow-hidden rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
           isDragActive
-            ? 'border-primary bg-primary/5'
-            : 'border-gray-300 hover:border-primary/50'
+            ? 'border-accent bg-accent/10 scale-[1.02]'
+            : 'border-border hover:border-accent/50 hover:bg-accent/5'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input {...getInputProps()} />
-        <div className="flex flex-col items-center justify-center text-center space-y-4">
-          <FiUploadCloud className="w-12 h-12 text-gray-400" />
+
+        {/* Background animation */}
+        <AnimatePresence>
+          {isDragActive && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br from-accent/20 to-accent/5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+          )}
+        </AnimatePresence>
+
+        <div className="relative p-12 flex flex-col items-center justify-center text-center space-y-4">
+          <motion.div
+            animate={{
+              y: isDragActive ? -10 : 0,
+              scale: isDragActive ? 1.2 : 1,
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <div className="relative">
+              <motion.div
+                className="absolute inset-0 rounded-full bg-accent/20 blur-xl"
+                animate={{
+                  scale: isDragActive ? [1, 1.5, 1] : 1,
+                  opacity: isDragActive ? [0.5, 1, 0.5] : 0,
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <FiUploadCloud className="relative w-16 h-16 text-accent" />
+            </div>
+          </motion.div>
+
           <div>
-            <p className="text-lg font-medium">
+            <motion.p
+              className="text-lg font-semibold text-foreground"
+              animate={{ y: isDragActive ? -5 : 0 }}
+            >
               {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
+            </motion.p>
+            <motion.p
+              className="text-sm text-secondary mt-2"
+              animate={{ opacity: isDragActive ? 0 : 1 }}
+            >
               or click to select files
-            </p>
+            </motion.p>
           </div>
-          <p className="text-xs text-gray-400">
+
+          <motion.p
+            className="text-xs text-tertiary"
+            animate={{ opacity: isDragActive ? 0 : 1 }}
+          >
             Max {FILE_CONFIG.maxFilesPerShare} files, up to{' '}
             {Math.round(FILE_CONFIG.maxFileSize / 1024 / 1024)}MB each
-          </p>
+          </motion.p>
         </div>
-      </Card>
 
-      {selectedFiles.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">
-            Selected files ({selectedFiles.length})
-          </p>
-          {selectedFiles.map((file, index) => (
-            <Card key={index} className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  {file.preview ? (
-                    <img
-                      src={file.preview}
-                      alt={file.name}
-                      className="w-10 h-10 object-cover rounded"
-                    />
-                  ) : (
-                    <FiFile className="w-10 h-10 text-gray-400" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(file.size)}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeFile(index)}
-                  disabled={disabled}
+        {/* Animated border shine */}
+        {!isDragActive && !disabled && (
+          <motion.div
+            className="absolute inset-0 rounded-xl opacity-0 hover:opacity-100 transition-opacity pointer-events-none"
+            style={{
+              background: 'linear-gradient(90deg, transparent, var(--accent)/20, transparent)',
+            }}
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          />
+        )}
+      </div>
+
+      <AnimatePresence>
+        {selectedFiles.length > 0 && (
+          <motion.div
+            className="space-y-3"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.p
+              className="text-sm font-semibold text-foreground flex items-center gap-2"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <FiImage className="h-4 w-4 text-accent" />
+              Selected files ({selectedFiles.length})
+            </motion.p>
+
+            <div className="space-y-2">
+              {selectedFiles.map((file, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ delay: index * 0.05 }}
+                  layout
                 >
-                  <FiX className="w-4 h-4" />
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+                  <Card className="p-3 hover:shadow-medium transition-shadow duration-300 border-border/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <motion.div
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          transition={{ type: "spring", stiffness: 400 }}
+                        >
+                          {file.preview ? (
+                            <img
+                              src={file.preview}
+                              alt={file.name}
+                              className="w-12 h-12 object-cover rounded-lg border border-border/50"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 flex items-center justify-center bg-surface rounded-lg border border-border/50">
+                              <FiFile className="w-6 h-6 text-accent" />
+                            </div>
+                          )}
+                        </motion.div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate text-foreground">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-tertiary">
+                            {formatFileSize(file.size)}
+                          </p>
+                        </div>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <LiquidButton
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(index);
+                          }}
+                          disabled={disabled}
+                          className="hover:bg-error/10 hover:text-error h-8 w-8 p-0"
+                        >
+                          <FiX className="w-4 h-4" />
+                        </LiquidButton>
+                      </motion.div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

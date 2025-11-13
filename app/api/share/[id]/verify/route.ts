@@ -5,8 +5,8 @@
 
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/db/supabase';
-import { verifyPassword } from '@/lib/auth/password';
-import { isValidShareLink } from '@/lib/auth/share-link';
+import { verifyPassword } from '@/lib/security/password';
+import { isValidShareLink } from '@/lib/security/share-link';
 import {
   successResponse,
   badRequestResponse,

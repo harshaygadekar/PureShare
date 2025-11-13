@@ -6,7 +6,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { LiquidButton } from '@/components/ui/liquid-glass-button';
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
 import { FiArrowRight } from 'react-icons/fi';
@@ -26,17 +26,17 @@ export function CTA() {
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button asChild size="lg" className="h-12 px-8 text-base">
+              <LiquidButton asChild size="lg" className="h-12 px-8 text-base">
                 <Link href="/upload">
                   Get Started for Free
                   <FiArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-12 px-8 text-base">
+              </LiquidButton>
+              <LiquidButton asChild variant="outline" size="lg" className="h-12 px-8 text-base">
                 <Link href="/signup">
                   Create Account
                 </Link>
-              </Button>
+              </LiquidButton>
             </div>
 
             <p className="mt-8 text-sm text-tertiary">

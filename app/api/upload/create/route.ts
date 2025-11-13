@@ -5,8 +5,8 @@
 
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/db/supabase';
-import { generateShareLink } from '@/lib/auth/share-link';
-import { hashPassword } from '@/lib/auth/password';
+import { generateShareLink } from '@/lib/security/share-link';
+import { hashPassword } from '@/lib/security/password';
 import { createShareSchema } from '@/lib/validations/share';
 import { successResponse, badRequestResponse, serverErrorResponse } from '@/lib/utils/api-response';
 import type { CreateShareResponse } from '@/types/api';

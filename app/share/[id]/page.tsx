@@ -7,13 +7,17 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { LiquidButton } from '@/components/ui/liquid-glass-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { FiDownload, FiLock, FiClock, FiFile, FiAlertCircle } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+import { downloadFile, downloadAllAsZip, formatBytes, calculateTotalSize } from '@/lib/downloads/client-download';
 import type { FileMetadata } from '@/types/api';
 
 export default function SharePage() {
@@ -28,6 +32,10 @@ export default function SharePage() {
   const [files, setFiles] = useState<FileMetadata[]>([]);
   const [shareInfo, setShareInfo] = useState<{ expiresAt: string; fileCount: number } | null>(null);
   const [selectedImage, setSelectedImage] = useState<FileMetadata | null>(null);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
+  const [downloadAllProgress, setDownloadAllProgress] = useState(0);
 
   useEffect(() => {
     checkShareAccess();
@@ -119,35 +127,45 @@ export default function SharePage() {
     }
   };
 
-  const downloadFile = async (fileId: string, filename: string) => {
+  const handleDownloadFile = async (file: FileMetadata) => {
     try {
-      const response = await fetch(`/api/share/${shareId}/download/${fileId}`);
+      setDownloadingFileId(file.id);
+      setDownloadProgress(0);
 
-      if (!response.ok) {
-        throw new Error('Failed to get download URL');
-      }
+      const response = await fetch(`/api/share/${shareId}/download/${file.id}`);
+      if (!response.ok) throw new Error('Failed to get download URL');
 
       const { downloadUrl } = await response.json();
 
-      // Create temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await downloadFile(downloadUrl, file.filename, {
+        onProgress: (progress) => setDownloadProgress(progress.percentage),
+      });
+
+      toast.success(`Downloaded ${file.filename}`);
     } catch (err) {
-      console.error('Error downloading file:', err);
-      alert('Failed to download file');
+      toast.error('Failed to download file');
+    } finally {
+      setDownloadingFileId(null);
+      setDownloadProgress(0);
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  const handleDownloadAll = async () => {
+    try {
+      setIsDownloadingAll(true);
+      setDownloadAllProgress(0);
+
+      await downloadAllAsZip(shareId, `pureshare-${shareId}.zip`, {
+        onProgress: (progress) => setDownloadAllProgress(progress.percentage),
+      });
+
+      toast.success('All files downloaded successfully!');
+    } catch (err) {
+      toast.error('Failed to download files');
+    } finally {
+      setIsDownloadingAll(false);
+      setDownloadAllProgress(0);
+    }
   };
 
   const formatTimeRemaining = (expiresAt: string): string => {
@@ -171,7 +189,7 @@ export default function SharePage() {
   // Password prompt
   if (requiresPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-surface/30 to-background">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -190,7 +208,7 @@ export default function SharePage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && verifyPassword()}
+                onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
                 placeholder="Enter password"
                 disabled={isVerifying}
               />
@@ -203,13 +221,13 @@ export default function SharePage() {
               </div>
             )}
 
-            <Button
+            <LiquidButton
               onClick={verifyPassword}
               disabled={!password || isVerifying}
               className="w-full"
             >
               {isVerifying ? 'Verifying...' : 'Access Share'}
-            </Button>
+            </LiquidButton>
           </CardContent>
         </Card>
       </div>
@@ -219,15 +237,15 @@ export default function SharePage() {
   // Error state
   if (error && !requiresPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-surface/30 to-background">
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-6">
             <FiAlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => window.location.href = '/'}>
+            <LiquidButton onClick={() => window.location.href = '/'}>
               Create New Share
-            </Button>
+            </LiquidButton>
           </CardContent>
         </Card>
       </div>
@@ -237,7 +255,7 @@ export default function SharePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen p-4 bg-gradient-to-b from-background via-surface/30 to-background">
         <div className="max-w-6xl mx-auto py-8">
           <Skeleton className="h-12 w-64 mx-auto mb-8" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -251,22 +269,62 @@ export default function SharePage() {
   }
 
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-6xl mx-auto py-8">
+    <div className="min-h-screen p-4 bg-gradient-to-b from-background via-surface/30 to-background">
+      <div className="max-w-7xl mx-auto py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Shared Files</h1>
+        <div className="text-center mb-8 space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h1 className="text-4xl font-bold mb-2">Shared Files</h1>
+          </motion.div>
+
           {shareInfo && (
-            <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center justify-center gap-6 text-sm text-muted-foreground"
+            >
+              <div className="flex items-center gap-2">
                 <FiFile className="w-4 h-4" />
-                <span>{shareInfo.fileCount} files</span>
+                <span>{shareInfo.fileCount} files ({formatBytes(calculateTotalSize(files))})</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <FiClock className="w-4 h-4" />
                 <span>Expires in {formatTimeRemaining(shareInfo.expiresAt)}</span>
               </div>
-            </div>
+            </motion.div>
+          )}
+
+          {/* Download All Button */}
+          {files.length > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <LiquidButton
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+                size="lg"
+                className="group shadow-medium hover:shadow-strong"
+              >
+                {isDownloadingAll ? (
+                  <div className="flex items-center gap-3">
+                    <Progress value={downloadAllProgress} className="w-24 h-2" />
+                    <span>{Math.round(downloadAllProgress)}%</span>
+                  </div>
+                ) : (
+                  <>
+                    <FiDownload className="w-5 h-5 mr-2" />
+                    Download All ({files.length} files, {formatBytes(calculateTotalSize(files))})
+                  </>
+                )}
+              </LiquidButton>
+            </motion.div>
           )}
         </div>
 
@@ -277,36 +335,56 @@ export default function SharePage() {
             <p className="text-gray-600">No files in this share</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {files.map((file) => (
-              <Card key={file.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div
-                  className="relative h-48 bg-gray-100 cursor-pointer"
-                  onClick={() => setSelectedImage(file)}
-                >
-                  <img
-                    src={file.previewUrl}
-                    alt={file.filename}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <p className="font-medium truncate mb-1">{file.filename}</p>
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>{formatFileSize(file.size)}</span>
-                    <Badge variant="secondary">{file.mimeType.split('/')[1]}</Badge>
-                  </div>
-                  <Button
-                    onClick={() => downloadFile(file.id, file.filename)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-3"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {files.map((file, index) => (
+              <motion.div
+                key={file.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + index * 0.05 }}
+                whileHover={{ y: -4 }}
+              >
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
+                  <div
+                    className="relative h-48 bg-gray-100 cursor-pointer"
+                    onClick={() => setSelectedImage(file)}
                   >
-                    <FiDownload className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
-                </CardContent>
-              </Card>
+                    <img
+                      src={file.previewUrl}
+                      alt={file.filename}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-4 flex-1 flex flex-col">
+                    <p className="font-medium truncate mb-1" title={file.filename}>
+                      {file.filename}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                      <span>{formatBytes(file.size)}</span>
+                      <Badge variant="secondary">{file.mimeType.split('/')[1].toUpperCase()}</Badge>
+                    </div>
+                    <LiquidButton
+                      onClick={() => handleDownloadFile(file)}
+                      disabled={downloadingFileId === file.id}
+                      variant="outline"
+                      size="sm"
+                      className="w-full group mt-auto"
+                    >
+                      {downloadingFileId === file.id ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <Progress value={downloadProgress} className="w-16 h-1.5" />
+                          <span className="text-xs">{Math.round(downloadProgress)}%</span>
+                        </div>
+                      ) : (
+                        <>
+                          <FiDownload className="w-4 h-4 mr-2 group-hover:translate-y-0.5 transition-transform" />
+                          Download
+                        </>
+                      )}
+                    </LiquidButton>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         )}
@@ -322,15 +400,30 @@ export default function SharePage() {
                 <img
                   src={selectedImage.previewUrl}
                   alt={selectedImage.filename}
-                  className="w-full h-auto max-h-[70vh] object-contain"
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
                 />
-                <Button
-                  onClick={() => downloadFile(selectedImage.id, selectedImage.filename)}
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{formatBytes(selectedImage.size)}</span>
+                  <Badge variant="secondary">{selectedImage.mimeType}</Badge>
+                </div>
+                <LiquidButton
+                  onClick={() => handleDownloadFile(selectedImage)}
+                  disabled={downloadingFileId === selectedImage.id}
                   className="w-full"
+                  size="lg"
                 >
-                  <FiDownload className="w-4 h-4 mr-2" />
-                  Download {selectedImage.filename}
-                </Button>
+                  {downloadingFileId === selectedImage.id ? (
+                    <div className="flex items-center gap-3">
+                      <Progress value={downloadProgress} className="w-32 h-2" />
+                      <span>{Math.round(downloadProgress)}%</span>
+                    </div>
+                  ) : (
+                    <>
+                      <FiDownload className="w-5 h-5 mr-2" />
+                      Download {selectedImage.filename}
+                    </>
+                  )}
+                </LiquidButton>
               </div>
             )}
           </DialogContent>

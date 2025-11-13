@@ -1,19 +1,21 @@
 /**
  * Global Next.js Middleware
- * Handles authentication, security headers, and CORS
+ * Handles authentication with Clerk and security headers
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
-import { isProtectedRoute, isAuthRoute } from '@/lib/middleware/auth-guard';
-import {
-  handleCorsPreflightRequest,
-  applyCorsHeaders,
-  applySecurityHeaders,
-} from '@/lib/middleware/security-headers';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 /**
- * Middleware configuration
+ * Define protected routes that require authentication
+ */
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/api/user(.*)',
+]);
+
+/**
+ * Middleware configuration - exclude static files
  */
 export const config = {
   matcher: [
@@ -29,45 +31,25 @@ export const config = {
 };
 
 /**
- * Main middleware function
+ * Main middleware function with Clerk
  */
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Handle CORS preflight requests
-  const preflightResponse = handleCorsPreflightRequest(request);
-  if (preflightResponse) {
-    return preflightResponse;
-  }
-
-  // Get session
-  const session = await getSession(request);
-
-  // Protected routes - require authentication
-  if (isProtectedRoute(pathname)) {
-    if (!session) {
-      const url = new URL('/login', request.url);
-      url.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(url);
-    }
-  }
-
-  // Auth routes - redirect if already logged in
-  if (isAuthRoute(pathname)) {
-    if (session) {
-      const callbackUrl = request.nextUrl.searchParams.get('callbackUrl') || '/dashboard';
-      return NextResponse.redirect(new URL(callbackUrl, request.url));
-    }
+export default clerkMiddleware(async (auth, req) => {
+  // Protect routes that require authentication
+  if (isProtectedRoute(req)) {
+    await auth.protect();
   }
 
   // Continue with the request
   const response = NextResponse.next();
 
   // Apply security headers
-  applySecurityHeaders(response);
-
-  // Apply CORS headers
-  applyCorsHeaders(request, response);
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  );
 
   return response;
-}
+});

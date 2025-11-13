@@ -26,13 +26,13 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
 
+  // Clerk Authentication
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required'),
+  CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
+
   // Upstash Redis (for rate limiting)
   UPSTASH_REDIS_REST_URL: z.string().url('UPSTASH_REDIS_REST_URL must be a valid URL').optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
-
-  // JWT Configuration
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').optional(),
-  JWT_EXPIRES_IN: z.string().default('7d'),
 
   // Email Configuration (Resend)
   RESEND_API_KEY: z.string().optional(),
@@ -128,6 +128,8 @@ export function checkRequiredEnvVars(): {
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'SUPABASE_SERVICE_ROLE_KEY',
+    'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+    'CLERK_SECRET_KEY',
   ];
 
   critical.forEach((key) => {
@@ -138,7 +140,6 @@ export function checkRequiredEnvVars(): {
 
   // Optional but recommended
   const recommended = [
-    'JWT_SECRET',
     'UPSTASH_REDIS_REST_URL',
     'UPSTASH_REDIS_REST_TOKEN',
     'RESEND_API_KEY',
@@ -158,21 +159,11 @@ export function checkRequiredEnvVars(): {
 }
 
 /**
- * Generate JWT secret if not provided
+ * @deprecated JWT authentication has been replaced with Clerk
+ * This function is kept for backward compatibility but should not be used
  */
 export function ensureJwtSecret(): string {
-  if (process.env.JWT_SECRET) {
-    return process.env.JWT_SECRET;
-  }
-
-  // In development, generate a random secret
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('⚠️  JWT_SECRET not set, generating random secret for development');
-    const crypto = require('crypto');
-    return crypto.randomBytes(32).toString('hex');
-  }
-
-  throw new Error('JWT_SECRET is required in production');
+  throw new Error('JWT authentication has been replaced with Clerk. Please use Clerk authentication instead.');
 }
 
 /**
