@@ -190,7 +190,7 @@ export default function SharePage() {
   if (requiresPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-surface/30 to-background">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md glass-card">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FiLock className="w-8 h-8 text-blue-600" />
@@ -211,6 +211,7 @@ export default function SharePage() {
                 onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
                 placeholder="Enter password"
                 disabled={isVerifying}
+                className="glass-input"
               />
             </div>
 
@@ -238,7 +239,7 @@ export default function SharePage() {
   if (error && !requiresPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-surface/30 to-background">
-        <Card className="w-full max-w-md text-center">
+        <Card className="w-full max-w-md text-center glass-card">
           <CardContent className="pt-6">
             <FiAlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Error</h2>
@@ -278,7 +279,7 @@ export default function SharePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-4xl font-bold mb-2">Shared Files</h1>
+            <h1 className="text-4xl font-bold mb-2 text-white">Shared Files</h1>
           </motion.div>
 
           {shareInfo && (
@@ -286,7 +287,7 @@ export default function SharePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center justify-center gap-6 text-sm text-muted-foreground"
+              className="flex items-center justify-center gap-6 text-sm text-white/70"
             >
               <div className="flex items-center gap-2">
                 <FiFile className="w-4 h-4" />
@@ -330,9 +331,9 @@ export default function SharePage() {
 
         {/* File Grid */}
         {files.length === 0 ? (
-          <Card className="text-center p-8">
-            <FiFile className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No files in this share</p>
+          <Card className="text-center p-8 glass-card">
+            <FiFile className="w-16 h-16 text-white/40 mx-auto mb-4" />
+            <p className="text-white/60">No files in this share</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -344,7 +345,7 @@ export default function SharePage() {
                 transition={{ delay: 0.5 + index * 0.05 }}
                 whileHover={{ y: -4 }}
               >
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
+                <Card className="overflow-hidden glass-card hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
                   <div
                     className="relative h-48 bg-gray-100 cursor-pointer"
                     onClick={() => setSelectedImage(file)}

@@ -106,7 +106,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
         rotateY,
         transformStyle: "preserve-3d",
       }}
-      className="group relative rounded-xl border border-border bg-background p-8 shadow-soft transition-all duration-300 hover:border-border-hover hover:shadow-strong"
+      className="group relative rounded-xl glass-card p-8 transition-all duration-300 hover:shadow-2xl"
     >
       {/* Gradient overlay on hover */}
       <motion.div
@@ -118,7 +118,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
       <div className="relative" style={{ transform: "translateZ(50px)" }}>
         {/* Icon with glow effect */}
         <motion.div
-          className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-elevated shadow-soft relative"
+          className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl glass-subtle shadow-soft relative"
           animate={{ scale: isHovered ? 1.1 : 1 }}
           transition={{ duration: 0.2 }}
         >
@@ -133,10 +133,10 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
           <feature.icon className="relative h-7 w-7 text-accent" />
         </motion.div>
 
-        <h3 className="mb-3 text-xl font-semibold text-foreground">
+        <h3 className="mb-3 text-xl font-semibold text-white">
           {feature.title}
         </h3>
-        <p className="text-sm leading-relaxed text-secondary">
+        <p className="text-sm leading-relaxed text-white/70">
           {feature.description}
         </p>
       </div>
@@ -154,7 +154,7 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
 
 export function Features() {
   return (
-    <Section id="features" className="bg-surface/50">
+    <Section id="features" className="relative">
       <Container>
         <motion.div
           className="mb-16 text-center"
@@ -163,10 +163,10 @@ export function Features() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          <h2 className="mb-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Everything you need
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-secondary">
+          <p className="mx-auto max-w-2xl text-lg text-white/70">
             Built with security and simplicity in mind. Share files without compromising on privacy or convenience.
           </p>
         </motion.div>

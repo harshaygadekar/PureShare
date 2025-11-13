@@ -83,10 +83,10 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
     <div className="w-full space-y-4">
       <div
         {...rootProps}
-        className={`relative overflow-hidden rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
+        className={`relative overflow-hidden rounded-xl border-2 border-dashed transition-all duration-300 cursor-pointer glass-card ${
           isDragActive
-            ? 'border-accent bg-accent/10 scale-[1.02]'
-            : 'border-border hover:border-accent/50 hover:bg-accent/5'
+            ? 'border-accent/50 scale-[1.02] shadow-2xl'
+            : 'border-white/10 hover:border-accent/30'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input {...getInputProps()} />
@@ -126,13 +126,13 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
 
           <div>
             <motion.p
-              className="text-lg font-semibold text-foreground"
+              className="text-lg font-semibold text-white"
               animate={{ y: isDragActive ? -5 : 0 }}
             >
               {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
             </motion.p>
             <motion.p
-              className="text-sm text-secondary mt-2"
+              className="text-sm text-white/70 mt-2"
               animate={{ opacity: isDragActive ? 0 : 1 }}
             >
               or click to select files
@@ -140,7 +140,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
           </div>
 
           <motion.p
-            className="text-xs text-tertiary"
+            className="text-xs text-white/50"
             animate={{ opacity: isDragActive ? 0 : 1 }}
           >
             Max {FILE_CONFIG.maxFilesPerShare} files, up to{' '}
@@ -171,7 +171,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
             transition={{ duration: 0.3 }}
           >
             <motion.p
-              className="text-sm font-semibold text-foreground flex items-center gap-2"
+              className="text-sm font-semibold text-white flex items-center gap-2"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
             >
@@ -189,7 +189,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                   transition={{ delay: index * 0.05 }}
                   layout
                 >
-                  <Card className="p-3 hover:shadow-medium transition-shadow duration-300 border-border/50">
+                  <Card className="p-3 glass-subtle hover:glass transition-all duration-300">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         <motion.div
@@ -200,19 +200,19 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                             <img
                               src={file.preview}
                               alt={file.name}
-                              className="w-12 h-12 object-cover rounded-lg border border-border/50"
+                              className="w-12 h-12 object-cover rounded-lg border border-white/10"
                             />
                           ) : (
-                            <div className="w-12 h-12 flex items-center justify-center bg-surface rounded-lg border border-border/50">
+                            <div className="w-12 h-12 flex items-center justify-center glass-subtle rounded-lg">
                               <FiFile className="w-6 h-6 text-accent" />
                             </div>
                           )}
                         </motion.div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate text-foreground">
+                          <p className="text-sm font-medium truncate text-white">
                             {file.name}
                           </p>
-                          <p className="text-xs text-tertiary">
+                          <p className="text-xs text-white/50">
                             {formatFileSize(file.size)}
                           </p>
                         </div>

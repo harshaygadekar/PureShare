@@ -239,7 +239,7 @@ export default function HomePage() {
                         <Input
                           value={shareLink}
                           readOnly
-                          className="font-mono text-sm bg-surface/50"
+                          className="font-mono text-sm glass-input"
                         />
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                           <LiquidButton
@@ -279,7 +279,7 @@ export default function HomePage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
                     >
-                      <Alert className="border-accent/20 bg-accent/5">
+                      <Alert className="glass-subtle border-accent/20">
                         <AlertDescription className="space-y-3 text-sm">
                           <p className="font-semibold text-foreground">Share Details:</p>
                           <div className="space-y-2">
@@ -352,10 +352,10 @@ export default function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <h1 className="mb-3 text-5xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <h1 className="mb-3 text-5xl font-bold tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
                   {APP_CONFIG.name}
                 </h1>
-                <p className="text-lg text-secondary">{APP_CONFIG.description}</p>
+                <p className="text-lg text-white/70">{APP_CONFIG.description}</p>
               </motion.div>
 
               <motion.div
@@ -430,7 +430,7 @@ export default function HomePage() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           disabled={isUploading}
-                          className="transition-all duration-300 focus:border-accent"
+                          className="glass-input transition-all duration-300"
                         />
                       </motion.div>
 
@@ -449,7 +449,7 @@ export default function HomePage() {
                           onValueChange={setExpirationHours}
                           disabled={isUploading}
                         >
-                          <SelectTrigger id="expiration" className="transition-all duration-300 focus:border-accent">
+                          <SelectTrigger id="expiration" className="glass-input transition-all duration-300">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -481,9 +481,9 @@ export default function HomePage() {
                             </motion.span>
                             <span className="font-mono text-foreground">{Math.round(uploadProgress)}%</span>
                           </div>
-                          <div className="relative h-2 overflow-hidden rounded-full bg-surface">
+                          <div className="relative h-2 overflow-hidden rounded-full glass-subtle">
                             <motion.div
-                              className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent to-accent/70 rounded-full"
+                              className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent to-accent/70 rounded-full shadow-lg"
                               initial={{ width: 0 }}
                               animate={{ width: `${uploadProgress}%` }}
                               transition={{ duration: 0.3, ease: "easeOut" }}

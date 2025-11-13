@@ -89,8 +89,8 @@ export function Hero() {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <motion.div
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-4 py-2 text-sm text-secondary shadow-soft backdrop-blur-md"
-              whileHover={{ scale: 1.05, borderColor: "var(--accent)" }}
+              className="inline-flex items-center gap-2 rounded-full glass px-4 py-2 text-sm text-white/80 shadow-soft"
+              whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.2 }}
             >
               <motion.div
@@ -180,13 +180,13 @@ export function Hero() {
             ].map((item, index) => (
               <motion.div
                 key={item.text}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 glass-subtle rounded-full px-4 py-2 text-white/70"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
-                whileHover={{ scale: 1.05, color: "var(--accent)" }}
+                whileHover={{ scale: 1.05 }}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className="h-4 w-4 text-accent" />
                 <span>{item.text}</span>
               </motion.div>
             ))}
