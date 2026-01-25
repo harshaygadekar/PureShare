@@ -6,7 +6,17 @@ import { z } from 'zod';
 import { SHARE_CONFIG, FILE_CONFIG } from '@/config/constants';
 
 export const createShareSchema = z.object({
-  password: z.string().min(4).max(100).optional(),
+  password: z.string()
+    .optional()
+    .transform((val) => val === '' ? undefined : val) // Convert empty string to undefined
+    .refine(
+      (val) => val === undefined || val.length >= 4,
+      { message: 'Password must be at least 4 characters' }
+    )
+    .refine(
+      (val) => val === undefined || val.length <= 100,
+      { message: 'Password must be at most 100 characters' }
+    ),
   expirationHours: z
     .number()
     .min(SHARE_CONFIG.minExpirationHours)

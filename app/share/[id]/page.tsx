@@ -1,21 +1,19 @@
 'use client';
 
 /**
- * Share Viewing Page - Display files in a share
+ * Share Viewing Page
+ * Clean Apple-inspired design for viewing and downloading shared files
  */
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LiquidButton } from '@/components/ui/liquid-glass-button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { FiDownload, FiLock, FiClock, FiFile, FiAlertCircle } from 'react-icons/fi';
-import { motion } from 'framer-motion';
+import { FiDownload, FiLock, FiClock, FiFile, FiAlertCircle, FiArrowRight } from 'react-icons/fi';
 import { toast } from 'sonner';
 import { downloadFile, downloadAllAsZip, formatBytes, calculateTotalSize } from '@/lib/downloads/client-download';
 import type { FileMetadata } from '@/types/api';
@@ -36,6 +34,8 @@ export default function SharePage() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [downloadAllProgress, setDownloadAllProgress] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const [dialogImageLoaded, setDialogImageLoaded] = useState(false);
 
   useEffect(() => {
     checkShareAccess();
@@ -189,18 +189,42 @@ export default function SharePage() {
   // Password prompt
   if (requiresPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-surface/30 to-background">
-        <Card className="w-full max-w-md glass-card">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FiLock className="w-8 h-8 text-blue-600" />
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+      >
+        <div
+          className="w-full max-w-md rounded-2xl p-8"
+          style={{
+            backgroundColor: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-medium)',
+          }}
+        >
+          {/* Icon */}
+          <div className="text-center mb-6">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'rgba(0, 113, 227, 0.1)' }}
+            >
+              <FiLock className="w-8 h-8" style={{ color: 'var(--color-interactive)' }} />
             </div>
-            <CardTitle className="text-2xl">Password Required</CardTitle>
-            <CardDescription>
+            <h1
+              className="text-2xl font-semibold"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Password Required
+            </h1>
+            <p
+              className="mt-2 text-sm"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
               This share is password protected
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </p>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Enter Password</Label>
               <Input
@@ -211,26 +235,33 @@ export default function SharePage() {
                 onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
                 placeholder="Enter password"
                 disabled={isVerifying}
-                className="glass-input"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 p-3 rounded-lg text-sm text-red-800 flex items-center gap-2">
+              <div
+                className="p-3 rounded-lg text-sm flex items-center gap-2"
+                style={{
+                  backgroundColor: 'rgba(255, 59, 48, 0.1)',
+                  color: 'var(--color-error)',
+                }}
+              >
                 <FiAlertCircle className="w-4 h-4" />
                 {error}
               </div>
             )}
 
-            <LiquidButton
+            <Button
               onClick={verifyPassword}
               disabled={!password || isVerifying}
               className="w-full"
+              size="lg"
             >
               {isVerifying ? 'Verifying...' : 'Access Share'}
-            </LiquidButton>
-          </CardContent>
-        </Card>
+              {!isVerifying && <FiArrowRight className="ml-2 h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -238,17 +269,38 @@ export default function SharePage() {
   // Error state
   if (error && !requiresPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-surface/30 to-background">
-        <Card className="w-full max-w-md text-center glass-card">
-          <CardContent className="pt-6">
-            <FiAlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Error</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <LiquidButton onClick={() => window.location.href = '/'}>
-              Create New Share
-            </LiquidButton>
-          </CardContent>
-        </Card>
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+      >
+        <div
+          className="w-full max-w-md rounded-2xl p-8 text-center"
+          style={{
+            backgroundColor: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-medium)',
+          }}
+        >
+          <FiAlertCircle
+            className="w-16 h-16 mx-auto mb-4"
+            style={{ color: 'var(--color-error)' }}
+          />
+          <h2
+            className="text-2xl font-semibold mb-2"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Error
+          </h2>
+          <p
+            className="mb-6"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {error}
+          </p>
+          <Button onClick={() => window.location.href = '/'}>
+            Create New Share
+          </Button>
+        </div>
       </div>
     );
   }
@@ -256,12 +308,15 @@ export default function SharePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen p-4 bg-gradient-to-b from-background via-surface/30 to-background">
+      <div
+        className="min-h-screen p-4"
+        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+      >
         <div className="max-w-6xl mx-auto py-8">
           <Skeleton className="h-12 w-64 mx-auto mb-8" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-64" />
+              <Skeleton key={i} className="h-64 rounded-xl" />
             ))}
           </div>
         </div>
@@ -269,25 +324,26 @@ export default function SharePage() {
     );
   }
 
+  // Main content - Files view
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-b from-background via-surface/30 to-background">
+    <div
+      className="min-h-screen p-4"
+      style={{ backgroundColor: 'var(--color-bg-primary)' }}
+    >
       <div className="max-w-7xl mx-auto py-8">
         {/* Header */}
-        <div className="text-center mb-8 space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+        <div className="text-center mb-10">
+          <h1
+            className="text-4xl font-bold mb-4"
+            style={{ color: 'var(--color-text-primary)' }}
           >
-            <h1 className="text-4xl font-bold mb-2 text-white">Shared Files</h1>
-          </motion.div>
+            Shared Files
+          </h1>
 
           {shareInfo && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex items-center justify-center gap-6 text-sm text-white/70"
+            <div
+              className="flex items-center justify-center gap-6 text-sm"
+              style={{ color: 'var(--color-text-secondary)' }}
             >
               <div className="flex items-center gap-2">
                 <FiFile className="w-4 h-4" />
@@ -297,95 +353,129 @@ export default function SharePage() {
                 <FiClock className="w-4 h-4" />
                 <span>Expires in {formatTimeRemaining(shareInfo.expiresAt)}</span>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {/* Download All Button */}
           {files.length > 1 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <LiquidButton
+            <div className="mt-6">
+              <Button
                 onClick={handleDownloadAll}
                 disabled={isDownloadingAll}
                 size="lg"
-                className="group shadow-medium hover:shadow-strong"
               >
                 {isDownloadingAll ? (
-                  <div className="flex items-center gap-3">
-                    <Progress value={downloadAllProgress} className="w-24 h-2" />
-                    <span>{Math.round(downloadAllProgress)}%</span>
-                  </div>
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">⟳</span>
+                    {Math.round(downloadAllProgress)}%
+                  </span>
                 ) : (
                   <>
                     <FiDownload className="w-5 h-5 mr-2" />
-                    Download All ({files.length} files, {formatBytes(calculateTotalSize(files))})
+                    Download All ({files.length} files)
                   </>
                 )}
-              </LiquidButton>
-            </motion.div>
+              </Button>
+            </div>
           )}
         </div>
 
         {/* File Grid */}
         {files.length === 0 ? (
-          <Card className="text-center p-8 glass-card">
-            <FiFile className="w-16 h-16 text-white/40 mx-auto mb-4" />
-            <p className="text-white/60">No files in this share</p>
-          </Card>
+          <div
+            className="text-center p-12 rounded-2xl"
+            style={{
+              backgroundColor: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <FiFile
+              className="w-16 h-16 mx-auto mb-4"
+              style={{ color: 'var(--color-text-tertiary)' }}
+            />
+            <p style={{ color: 'var(--color-text-secondary)' }}>
+              No files in this share
+            </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {files.map((file, index) => (
-              <motion.div
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {files.map((file) => (
+              <div
                 key={file.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + index * 0.05 }}
-                whileHover={{ y: -4 }}
+                className="rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg"
+                style={{
+                  backgroundColor: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
+                }}
               >
-                <Card className="overflow-hidden glass-card hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-                  <div
-                    className="relative h-48 bg-gray-100 cursor-pointer"
-                    onClick={() => setSelectedImage(file)}
-                  >
-                    <img
-                      src={file.previewUrl}
-                      alt={file.filename}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-4 flex-1 flex flex-col">
-                    <p className="font-medium truncate mb-1" title={file.filename}>
-                      {file.filename}
-                    </p>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                      <span>{formatBytes(file.size)}</span>
-                      <Badge variant="secondary">{file.mimeType.split('/')[1].toUpperCase()}</Badge>
+                {/* Image Preview with Progressive Loading */}
+                <div
+                  className="relative h-48 cursor-pointer overflow-hidden"
+                  style={{ backgroundColor: 'var(--color-bg-secondary)' }}
+                  onClick={() => {
+                    setDialogImageLoaded(false);
+                    setSelectedImage(file);
+                  }}
+                >
+                  {/* Skeleton Placeholder */}
+                  {!loadedImages.has(file.id) && (
+                    <div className="absolute inset-0 animate-pulse" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
+                      <div className="flex items-center justify-center h-full">
+                        <FiFile className="w-8 h-8" style={{ color: 'var(--color-text-tertiary)' }} />
+                      </div>
                     </div>
-                    <LiquidButton
-                      onClick={() => handleDownloadFile(file)}
-                      disabled={downloadingFileId === file.id}
-                      variant="outline"
-                      size="sm"
-                      className="w-full group mt-auto"
-                    >
-                      {downloadingFileId === file.id ? (
-                        <div className="flex items-center gap-2 w-full">
-                          <Progress value={downloadProgress} className="w-16 h-1.5" />
-                          <span className="text-xs">{Math.round(downloadProgress)}%</span>
-                        </div>
-                      ) : (
-                        <>
-                          <FiDownload className="w-4 h-4 mr-2 group-hover:translate-y-0.5 transition-transform" />
-                          Download
-                        </>
-                      )}
-                    </LiquidButton>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  )}
+                  <img
+                    src={file.previewUrl}
+                    alt={file.filename}
+                    loading="lazy"
+                    onLoad={() => setLoadedImages(prev => new Set(prev).add(file.id))}
+                    className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
+                    style={{
+                      opacity: loadedImages.has(file.id) ? 1 : 0,
+                      transform: loadedImages.has(file.id) ? 'scale(1)' : 'scale(1.02)',
+                    }}
+                  />
+                </div>
+
+                {/* File Info */}
+                <div className="p-4">
+                  <p
+                    className="font-medium truncate mb-1"
+                    style={{ color: 'var(--color-text-primary)' }}
+                    title={file.filename}
+                  >
+                    {file.filename}
+                  </p>
+                  <div className="flex items-center justify-between text-sm mb-3">
+                    <span style={{ color: 'var(--color-text-tertiary)' }}>
+                      {formatBytes(file.size)}
+                    </span>
+                    <Badge variant="secondary">
+                      {file.mimeType.split('/')[1].toUpperCase()}
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => handleDownloadFile(file)}
+                    disabled={downloadingFileId === file.id}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    {downloadingFileId === file.id ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin">⟳</span>
+                        {Math.round(downloadProgress)}%
+                      </span>
+                    ) : (
+                      <>
+                        <FiDownload className="w-4 h-4 mr-2" />
+                        Download
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -398,33 +488,46 @@ export default function SharePage() {
             </DialogHeader>
             {selectedImage && (
               <div className="space-y-4">
-                <img
-                  src={selectedImage.previewUrl}
-                  alt={selectedImage.filename}
-                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-                />
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                {/* Dialog Image with Loading State */}
+                <div className="relative w-full max-h-[70vh] rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+                  {!dialogImageLoaded && (
+                    <div className="absolute inset-0 animate-pulse flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg-tertiary)', minHeight: '300px' }}>
+                      <div className="text-center">
+                        <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-3" style={{ borderColor: 'var(--color-interactive)', borderTopColor: 'transparent' }} />
+                        <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>Loading full image...</p>
+                      </div>
+                    </div>
+                  )}
+                  <img
+                    src={selectedImage.previewUrl}
+                    alt={selectedImage.filename}
+                    onLoad={() => setDialogImageLoaded(true)}
+                    className="w-full h-auto max-h-[70vh] object-contain transition-opacity duration-300"
+                    style={{ opacity: dialogImageLoaded ? 1 : 0 }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                   <span>{formatBytes(selectedImage.size)}</span>
                   <Badge variant="secondary">{selectedImage.mimeType}</Badge>
                 </div>
-                <LiquidButton
+                <Button
                   onClick={() => handleDownloadFile(selectedImage)}
                   disabled={downloadingFileId === selectedImage.id}
                   className="w-full"
                   size="lg"
                 >
                   {downloadingFileId === selectedImage.id ? (
-                    <div className="flex items-center gap-3">
-                      <Progress value={downloadProgress} className="w-32 h-2" />
-                      <span>{Math.round(downloadProgress)}%</span>
-                    </div>
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin">⟳</span>
+                      {Math.round(downloadProgress)}%
+                    </span>
                   ) : (
                     <>
                       <FiDownload className="w-5 h-5 mr-2" />
                       Download {selectedImage.filename}
                     </>
                   )}
-                </LiquidButton>
+                </Button>
               </div>
             )}
           </DialogContent>

@@ -1,249 +1,242 @@
 /**
  * Header Component
- * Premium 3D Pill Navigation with Liquid Glass Aesthetic
- * Integrates PillBase with Clerk authentication
+ * Apple-style Navigation with Mega Menu
+ * Flat, minimal design with blur backdrop on scroll
  */
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
-import { motion, useSpring, AnimatePresence } from 'framer-motion';
-import { LiquidButton } from '@/components/ui/liquid-glass-button';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { FiMenu, FiX } from 'react-icons/fi';
 
 interface NavItem {
   label: string;
-  id: string;
-  href?: string;
+  href: string;
+  id?: string;
 }
 
-// Navigation items - defined outside component to prevent recreation
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Home', id: 'home' },
-  { label: 'Features', id: 'features' },
-  { label: 'How It Works', id: 'how-it-works' },
-  { label: 'Testimonials', id: 'testimonials' },
+  { label: 'Home', href: '/', id: 'home' },
+  { label: 'Features', href: '/#features', id: 'features' },
+  { label: 'How It Works', href: '/#how-it-works', id: 'how-it-works' },
+  { label: 'About', href: '/about' },
 ];
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [activeSection, setActiveSection] = useState('home');
-  const [expanded, setExpanded] = useState(false);
-  const [hovering, setHovering] = useState(false);
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Spring animations for smooth motion
-  const pillWidth = useSpring(160, { stiffness: 220, damping: 25, mass: 1 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 0);
-
-      // Detect active section based on scroll position
-      const sections = NAV_ITEMS.map((item: NavItem) => document.getElementById(item.id));
-      const scrollPosition = window.scrollY + 200;
-
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section && section.offsetTop <= scrollPosition) {
-          setActiveSection(NAV_ITEMS[i].id);
-          break;
-        }
-      }
+      setScrolled(window.scrollY > 10);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Handle hover expansion
-  // Note: setExpanded is intentionally called in response to hovering changes
-  // This syncs the expanded state with hover state and manages delayed collapse
+  // Close mobile menu on resize to desktop
   useEffect(() => {
-    if (hovering) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setExpanded(true);
-      pillWidth.set(680);
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    } else {
-      hoverTimeoutRef.current = setTimeout(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setExpanded(false);
-        pillWidth.set(160);
-      }, 600);
-    }
-
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileMenuOpen(false);
       }
     };
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-  }, [hovering, pillWidth]);
 
-  const handleSectionClick = (sectionId: string) => {
-    setActiveSection(sectionId);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-    // Collapse the pill after selection
-    setHovering(false);
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
-    // Smooth scroll to section
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleNavClick = (href: string) => {
+    setMobileMenuOpen(false);
+
+    // Handle anchor links
+    if (href.startsWith('/#')) {
+      const elementId = href.substring(2);
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 
-  const activeItem = NAV_ITEMS.find((item: NavItem) => item.id === activeSection);
-
   return (
-    <header
-      className={cn(
-        'fixed left-0 right-0 top-0 z-50 transition-all duration-300',
-        scrolled
-          ? 'border-b border-white/10 glass'
-          : 'glass-subtle'
-      )}
-    >
-      <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo - Left */}
-        <div className="flex-shrink-0">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="text-xl font-bold bg-gradient-to-r from-accent to-accent/70 bg-clip-text text-transparent">
-              PureShare
-            </h1>
-          </motion.div>
-        </div>
-
-        {/* Navigation - Center (Liquid Glass Pill) */}
-        <motion.nav
-          onMouseEnter={() => setHovering(true)}
-          onMouseLeave={() => setHovering(false)}
-          className={cn(
-            "relative rounded-full hidden md:block glass-strong overflow-hidden",
-            expanded && "shadow-2xl"
-          )}
-          style={{
-            width: pillWidth,
-            height: '56px',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
+    <>
+      <header
+        className={cn(
+          'fixed left-0 right-0 top-0 z-50 transition-all duration-300 border-b',
+          scrolled
+            ? 'backdrop-apple border-[var(--color-border)]'
+            : 'bg-[var(--color-bg-primary)] border-[var(--color-border)]'
+        )}
+      >
+        <nav
+          aria-label="Main navigation"
+          className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-4 md:px-[22px]"
         >
-
-          {/* Navigation items */}
-          <div className="relative z-10 h-full flex items-center justify-center px-6"
-            style={{
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro", Poppins, sans-serif',
-            }}
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-xl font-semibold"
+            style={{ color: 'var(--color-text-primary)' }}
           >
-            {/* Collapsed state */}
-            {!expanded && (
-              <div className="flex items-center relative">
-                <AnimatePresence mode="wait">
-                  {activeItem && (
-                    <motion.span
-                      key={activeItem.id}
-                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                      exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                      transition={{
-                        duration: 0.35,
-                        ease: [0.4, 0.0, 0.2, 1]
-                      }}
-                      className="text-white font-semibold"
-                      style={{
-                        fontSize: '14px',
-                        letterSpacing: '0.3px',
-                        whiteSpace: 'nowrap',
-                        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-                      }}
-                    >
-                      {activeItem.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+            <span className="bg-gradient-to-r from-[var(--color-interactive)] to-[var(--color-interactive-hover)] bg-clip-text text-transparent">
+              PureShare
+            </span>
+          </Link>
 
-            {/* Expanded state */}
-            {expanded && (
-              <div className="flex items-center justify-evenly w-full">
-                {NAV_ITEMS.map((item: NavItem, index: number) => {
-                  const isActive = item.id === activeSection;
-
-                  return (
-                    <motion.button
-                      key={item.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      transition={{
-                        delay: index * 0.08,
-                        duration: 0.25,
-                        ease: 'easeOut'
-                      }}
-                      onClick={() => handleSectionClick(item.id)}
-                      className={cn(
-                        "relative cursor-pointer px-4 py-2 rounded-lg transition-all duration-200",
-                        isActive ? "text-white font-semibold" : "text-white/70 font-medium hover:text-white/90"
-                      )}
-                      style={{
-                        fontSize: '14px',
-                        letterSpacing: '0.3px',
-                        background: isActive ? 'rgba(10, 132, 255, 0.2)' : 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        whiteSpace: 'nowrap',
-                        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-                      }}
-                    >
-                      {item.label}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            )}
+          {/* Desktop Navigation */}
+          <div className="hidden items-center gap-8 md:flex">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => handleNavClick(item.href)}
+                className="text-sm font-medium transition-colors hover:text-[var(--color-interactive)]"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
-        </motion.nav>
 
-        {/* Authentication - Right */}
-        <div className="flex items-center gap-4">
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="hidden text-sm font-medium transition-colors hover:text-accent sm:block text-foreground">
-                Sign in
-              </button>
-            </SignInButton>
+          {/* Auth & Mobile Menu Toggle */}
+          <div className="flex items-center gap-4">
+            {/* Desktop Auth */}
+            <div className="hidden md:flex md:items-center md:gap-4">
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button
+                    className="text-sm font-medium transition-colors hover:text-[var(--color-interactive)]"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
+                    Sign in
+                  </button>
+                </SignInButton>
+                <SignInButton mode="modal">
+                  <button className="btn-primary rounded-full px-5 py-2 text-sm">
+                    Get Started
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      avatarBox: 'h-8 w-8',
+                    },
+                  }}
+                />
+              </SignedIn>
+            </div>
 
-            <SignInButton mode="modal">
-              <div>
-                <LiquidButton size="sm" className="h-9">
-                  Get Started
-                </LiquidButton>
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg md:hidden"
+              style={{ color: 'var(--color-text-primary)' }}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <FiX className="h-6 w-6" />
+              ) : (
+                <FiMenu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-[var(--color-bg-primary)] pt-16 md:hidden"
+          >
+            <nav className="flex flex-col p-6" aria-label="Mobile navigation">
+              {NAV_ITEMS.map((item, index) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.2 }}
+                >
+                  <Link
+                    href={item.href}
+                    onClick={() => handleNavClick(item.href)}
+                    className="block border-b py-4 text-lg font-medium"
+                    style={{
+                      color: 'var(--color-text-primary)',
+                      borderColor: 'var(--color-border)',
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
+              ))}
+
+              {/* Mobile Auth */}
+              <div className="mt-8 space-y-4">
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="btn-primary w-full rounded-full py-3 text-base">
+                      Get Started
+                    </button>
+                  </SignInButton>
+                  <SignInButton mode="modal">
+                    <button className="btn-secondary w-full rounded-full py-3 text-base">
+                      Sign in
+                    </button>
+                  </SignInButton>
+                </SignedOut>
+                <SignedIn>
+                  <div className="flex items-center gap-4 py-4">
+                    <UserButton
+                      afterSignOutUrl="/"
+                      appearance={{
+                        elements: {
+                          avatarBox: 'h-10 w-10',
+                        },
+                      }}
+                    />
+                    <span
+                      className="text-sm"
+                      style={{ color: 'var(--color-text-secondary)' }}
+                    >
+                      Manage account
+                    </span>
+                  </div>
+                </SignedIn>
               </div>
-            </SignInButton>
-          </SignedOut>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          <SignedIn>
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: 'h-10 w-10 border-2 border-accent/20',
-                  userButtonPopoverCard: 'shadow-lg',
-                }
-              }}
-            />
-          </SignedIn>
-        </div>
-      </div>
-    </header>
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
+    </>
   );
 }

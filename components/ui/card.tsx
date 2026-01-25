@@ -2,12 +2,17 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Card Component
+ * Apple-style flat card with subtle depth
+ */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-lg border py-6 shadow-medium transition-shadow duration-300 hover:shadow-strong",
+        // Apple flat aesthetic with subtle shadow
+        "bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] flex flex-col gap-6 rounded-xl border border-[var(--color-border)] py-6 shadow-soft transition-shadow duration-300 hover:shadow-medium",
         className
       )}
       {...props}
@@ -32,7 +37,10 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn(
+        "font-semibold leading-tight text-[var(--color-text-primary)]",
+        className
+      )}
       {...props}
     />
   )
@@ -42,7 +50,10 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn(
+        "text-sm text-[var(--color-text-secondary)]",
+        className
+      )}
       {...props}
     />
   )

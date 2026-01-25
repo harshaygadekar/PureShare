@@ -4,26 +4,39 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Button Component
+ * Apple-inspired CTA patterns with System Blue
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  // Base styles with Apple focus ring
+  "inline-flex items-center justify-center whitespace-nowrap font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-interactive)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        // Primary: Solid System Blue
+        default:
+          "bg-[var(--color-interactive)] text-white hover:bg-[var(--color-interactive-hover)] active:bg-[var(--color-interactive-active)] active:scale-[0.98]",
+        // Destructive: Solid Red
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-[var(--color-error)] text-white hover:bg-[var(--color-error)]/90 active:scale-[0.98]",
+        // Outline/Secondary: Border with System Blue
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border-[1.5px] border-[var(--color-interactive)] bg-transparent text-[var(--color-interactive)] hover:bg-[var(--color-interactive)] hover:text-white active:scale-[0.98]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-border)] active:scale-[0.98]",
+        // Ghost: Transparent with hover
+        ghost:
+          "hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]",
+        // Link/Tertiary: Text only
+        link:
+          "text-[var(--color-interactive)] underline-offset-4 hover:underline hover:text-[var(--color-interactive-hover)]",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "h-10 px-5 py-2 text-sm rounded-lg",
+        sm: "h-9 px-4 text-sm rounded-md",
+        lg: "h-12 px-8 text-base rounded-xl",
+        icon: "h-10 w-10 rounded-lg",
       },
     },
     defaultVariants: {
@@ -35,7 +48,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean
 }
 

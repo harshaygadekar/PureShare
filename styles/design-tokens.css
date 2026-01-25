@@ -1,0 +1,267 @@
+/**
+ * PureShare Design Tokens
+ * Apple-inspired Design System - Flat, Minimal Aesthetic
+ * Based on Apple.com Design Audit
+ */
+
+/* ============================================
+   COLOR SYSTEM - Apple Blue-Tinted Neutrals
+   ============================================ */
+
+:root {
+   /* === Primary Text Colors === */
+   --color-text-primary: #1D1D1F;
+   /* Near-black, maximum contrast */
+   --color-text-secondary: #86868B;
+   /* Medium gray for supporting text */
+   --color-text-tertiary: #A1A1A6;
+   /* Light gray for captions */
+   --color-text-inverse: #F5F5F7;
+   /* White text on dark backgrounds */
+
+   /* === Background Colors === */
+   --color-bg-primary: #FFFFFF;
+   /* Main background */
+   --color-bg-secondary: #F5F5F7;
+   /* Off-white with blue tint */
+   --color-bg-elevated: #FFFFFF;
+   /* Cards, modals */
+   --color-bg-dark: #000000;
+   /* Dark sections */
+
+   /* === Border Colors === */
+   --color-border: #E5E5E7;
+   /* Subtle dividers */
+   --color-border-hover: #D2D2D7;
+   /* Hover state borders */
+
+   /* === Interactive Colors (System Blue) === */
+   --color-interactive: #0071E3;
+   /* Primary actions, links */
+   --color-interactive-hover: #0066CC;
+   /* Hover state */
+   --color-interactive-active: #005BB5;
+   /* Active/pressed state */
+
+   /* === Status Colors === */
+   --color-success: #34C759;
+   /* Confirmations, positive */
+   --color-success-bg: #E8F7EC;
+   /* Success background */
+   --color-error: #FF3B30;
+   /* Errors, destructive */
+   --color-error-bg: #FFE5E5;
+   /* Error background */
+   --color-warning: #FFD60A;
+   /* Warnings, caution */
+   --color-warning-bg: #FFF9E5;
+   /* Warning background */
+
+   /* ============================================
+     SPACING SYSTEM - 8px Base Grid
+     ============================================ */
+   --space-0: 0px;
+   --space-xs: 8px;
+   /* Micro spacing */
+   --space-sm: 16px;
+   /* Small gaps, padding */
+   --space-md: 24px;
+   /* Medium spacing */
+   --space-lg: 32px;
+   /* Large gaps */
+   --space-xl: 48px;
+   /* Section padding */
+   --space-2xl: 64px;
+   /* Major sections */
+   --space-3xl: 80px;
+   /* Hero spacing */
+   --space-4xl: 96px;
+   /* Maximum spacing */
+
+   /* === Layout Margins (Responsive) === */
+   --margin-mobile: 16px;
+   /* 320px+ */
+   --margin-tablet: 22px;
+   /* 768px+ */
+   --margin-desktop: 22px;
+   /* 1069px+ */
+
+   /* === Container === */
+   --container-max: 1280px;
+
+   /* ============================================
+     TYPOGRAPHY - Bricolage Grotesque
+     ============================================ */
+   --font-sans: var(--font-bricolage, 'Bricolage Grotesque'), sans-serif;
+   --font-mono: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+
+   /* === Font Sizes === */
+   --text-hero: 80px;
+   /* Hero headlines */
+   --text-h1: 48px;
+   /* Page titles */
+   --text-h2: 34px;
+   /* Section headings */
+   --text-h3: 28px;
+   /* Subsection headings */
+   --text-h4: 21px;
+   /* Card headings */
+   --text-body: 16px;
+   /* Primary body text */
+   --text-body-lg: 18px;
+   /* Large body text */
+   --text-small: 13px;
+   /* Supporting text */
+   --text-caption: 12px;
+   /* Fine print, captions */
+
+   /* === Font Weights === */
+   --font-light: 300;
+   --font-regular: 400;
+   --font-medium: 500;
+   --font-semibold: 600;
+   --font-bold: 700;
+   --font-heavy: 800;
+
+   /* === Line Heights === */
+   --leading-tight: 1.2;
+   /* Headlines */
+   --leading-snug: 1.3;
+   /* Subheadings */
+   --leading-normal: 1.5;
+   /* Body text */
+   --leading-relaxed: 1.6;
+   /* Long-form content */
+
+   /* === Letter Spacing === */
+   --tracking-tight: -0.016em;
+   /* Large headlines */
+   --tracking-snug: -0.009em;
+   /* Medium headlines */
+   --tracking-normal: -0.003em;
+   /* Body text */
+   --tracking-wide: 0.004em;
+   /* Captions */
+
+   /* ============================================
+     TRANSITIONS - Purposeful Motion
+     ============================================ */
+   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+   --ease-out: cubic-bezier(0, 0, 0.2, 1);
+   --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+   --duration-instant: 100ms;
+   --duration-fast: 150ms;
+   /* Hover feedback */
+   --duration-normal: 250ms;
+   /* Standard transitions */
+   --duration-slow: 400ms;
+   /* Page transitions */
+   --duration-entrance: 500ms;
+   /* Appear animations */
+   --duration-exit: 300ms;
+   /* Disappear animations */
+
+   /* Composed transitions */
+   --transition-fast: var(--duration-fast) var(--ease-default);
+   --transition-normal: var(--duration-normal) var(--ease-default);
+   --transition-slow: var(--duration-slow) var(--ease-default);
+
+   /* ============================================
+     SHADOWS - Subtle Depth
+     ============================================ */
+   --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+   --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+   --shadow-strong: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+   --shadow-elevated: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+   /* ============================================
+     BORDER RADIUS - Apple Standard
+     ============================================ */
+   --radius-none: 0px;
+   --radius-sm: 4px;
+   --radius-md: 8px;
+   /* Buttons, inputs */
+   --radius-lg: 12px;
+   /* Cards */
+   --radius-xl: 16px;
+   /* Modals */
+   --radius-full: 9999px;
+   /* Pills, avatars */
+
+   /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+   --z-base: 0;
+   --z-dropdown: 10;
+   --z-sticky: 20;
+   --z-fixed: 30;
+   --z-modal-backdrop: 40;
+   --z-modal: 50;
+   --z-popover: 60;
+   --z-tooltip: 70;
+
+   /* ============================================
+     FOCUS RING - Accessibility
+     ============================================ */
+   --focus-ring-color: var(--color-interactive);
+   --focus-ring-width: 2px;
+   --focus-ring-offset: 2px;
+}
+
+/* ============================================
+   DARK MODE - Apple Dark Aesthetic
+   ============================================ */
+[data-theme="dark"],
+.dark {
+   --color-text-primary: #F5F5F7;
+   --color-text-secondary: #A1A1A6;
+   --color-text-tertiary: #6E6E73;
+   --color-text-inverse: #1D1D1F;
+
+   --color-bg-primary: #000000;
+   --color-bg-secondary: #1D1D1F;
+   --color-bg-elevated: #2C2C2E;
+   --color-bg-dark: #000000;
+
+   --color-border: #38383A;
+   --color-border-hover: #48484A;
+
+   /* Interactive colors stay the same for consistency */
+   --color-interactive: #0A84FF;
+   --color-interactive-hover: #409CFF;
+   --color-interactive-active: #5EB0FF;
+
+   /* Status backgrounds for dark mode */
+   --color-success-bg: #0F2A1A;
+   --color-error-bg: #2A0F0F;
+   --color-warning-bg: #2A250F;
+
+   /* Shadows for dark mode */
+   --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+   --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+   --shadow-strong: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+   --shadow-elevated: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY
+   ============================================ */
+@media (max-width: 767px) {
+   :root {
+      --text-hero: 48px;
+      --text-h1: 34px;
+      --text-h2: 28px;
+      --text-h3: 21px;
+      --text-h4: 18px;
+   }
+}
+
+@media (min-width: 768px) and (max-width: 1068px) {
+   :root {
+      --text-hero: 64px;
+      --text-h1: 40px;
+      --text-h2: 30px;
+      --text-h3: 24px;
+   }
+}

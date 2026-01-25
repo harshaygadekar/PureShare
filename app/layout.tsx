@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs';
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Bricolage Grotesque - Variable font with full weight range
+const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-bricolage",
+  display: 'swap',
+  // Variable font automatically includes all weights 200-800
 });
 
 export const metadata: Metadata = {
@@ -28,7 +26,8 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${bricolageGrotesque.variable} antialiased`}
+          style={{ fontFamily: 'var(--font-bricolage), sans-serif' }}
         >
           {children}
           <Toaster />
