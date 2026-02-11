@@ -5,6 +5,7 @@
 export interface CreateShareRequest {
   password?: string;
   expirationHours?: number;
+  expirationProfile?: "standard" | "video";
 }
 
 export interface CreateShareResponse {

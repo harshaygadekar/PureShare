@@ -3,19 +3,19 @@
  * Handles file uploads to S3 and stores metadata in database
  */
 
-import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/db/supabase';
-import { generateS3Key, getUploadPresignedUrl } from '@/lib/storage/s3';
-import { uploadFileSchema } from '@/lib/validations/share';
+import { NextRequest } from "next/server";
+import { supabaseAdmin } from "@/lib/db/supabase";
+import { generateS3Key, getUploadPresignedUrl } from "@/lib/storage/s3";
+import { uploadFileSchema } from "@/lib/validations/share";
 import {
   successResponse,
   badRequestResponse,
   notFoundResponse,
   goneResponse,
   serverErrorResponse,
-} from '@/lib/utils/api-response';
-import type { UploadFileResponse } from '@/types/api';
-import { FILE_CONFIG } from '@/config/constants';
+} from "@/lib/utils/api-response";
+import type { UploadFileResponse } from "@/types/api";
+import { FILE_CONFIG } from "@/config/constants";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,23 +31,25 @@ export async function POST(request: NextRequest) {
 
     // Check if share exists and is not expired
     const { data: share, error: shareError } = await supabaseAdmin
-      .from('shares')
-      .select('id, expires_at, file_count')
-      .eq('share_link', shareLink)
+      .from("shares")
+      .select("id, expires_at, file_count")
+      .eq("share_link", shareLink)
       .single();
 
     if (shareError || !share) {
-      return notFoundResponse('Share not found');
+      return notFoundResponse("Share not found");
     }
 
     // Check if expired
     if (new Date(share.expires_at) < new Date()) {
-      return goneResponse('Share has expired');
+      return goneResponse("Share has expired");
     }
 
     // Check file count limit
     if (share.file_count >= FILE_CONFIG.maxFilesPerShare) {
-      return badRequestResponse(`Maximum ${FILE_CONFIG.maxFilesPerShare} files per share`);
+      return badRequestResponse(
+        `Maximum ${FILE_CONFIG.maxFilesPerShare} files per share`,
+      );
     }
 
     // Generate S3 key
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     // Insert file metadata into database
     const { data: file, error: fileError } = await supabaseAdmin
-      .from('files')
+      .from("files")
       .insert({
         share_id: share.id,
         filename,
@@ -66,19 +68,37 @@ export async function POST(request: NextRequest) {
         mime_type: mimeType,
         s3_key: s3Key,
       })
-      .select('id, filename, size')
+      .select("id, filename, size")
       .single();
 
     if (fileError) {
-      console.error('Error creating file record:', fileError);
-      return serverErrorResponse('Failed to create file record');
+      console.error("Error creating file record:", fileError);
+      return serverErrorResponse("Failed to create file record");
     }
 
-    // Update file count
-    await supabaseAdmin
-      .from('shares')
-      .update({ file_count: share.file_count + 1 })
-      .eq('id', share.id);
+    const updates: Record<string, unknown> = {
+      file_count: share.file_count + 1,
+    };
+
+    if (mimeType.startsWith("image/")) {
+      updates.has_image = true;
+    }
+
+    if (mimeType.startsWith("video/")) {
+      updates.has_video = true;
+    }
+
+    // Update share metadata
+    const { error: updateError } = await supabaseAdmin
+      .from("shares")
+      .update(updates)
+      .eq("id", share.id);
+
+    if (updateError) {
+      console.error("Error updating share metadata:", updateError);
+      await supabaseAdmin.from("files").delete().eq("id", file.id);
+      return serverErrorResponse("Failed to update share metadata");
+    }
 
     const response: UploadFileResponse = {
       fileId: file.id,
@@ -89,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     return successResponse(response, 201);
   } catch (error) {
-    console.error('Unexpected error in upload files:', error);
-    return serverErrorResponse('An unexpected error occurred');
+    console.error("Unexpected error in upload files:", error);
+    return serverErrorResponse("An unexpected error occurred");
   }
 }

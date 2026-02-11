@@ -3,35 +3,48 @@
  * Validates all required environment variables at startup
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Environment schema validation
  */
 const envSchema = z.object({
   // Node environment
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
 
   // App configuration
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 
   // AWS Configuration
-  AWS_REGION: z.string().min(1, 'AWS_REGION is required'),
-  AWS_ACCESS_KEY_ID: z.string().min(1, 'AWS_ACCESS_KEY_ID is required'),
-  AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS_SECRET_ACCESS_KEY is required'),
-  AWS_S3_BUCKET_NAME: z.string().min(1, 'AWS_S3_BUCKET_NAME is required'),
+  AWS_REGION: z.string().min(1, "AWS_REGION is required"),
+  AWS_ACCESS_KEY_ID: z.string().min(1, "AWS_ACCESS_KEY_ID is required"),
+  AWS_SECRET_ACCESS_KEY: z.string().min(1, "AWS_SECRET_ACCESS_KEY is required"),
+  AWS_S3_BUCKET_NAME: z.string().min(1, "AWS_S3_BUCKET_NAME is required"),
 
   // Supabase Configuration
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
+  NEXT_PUBLIC_SUPABASE_URL: z
+    .string()
+    .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, "NEXT_PUBLIC_SUPABASE_ANON_KEY is required"),
+  SUPABASE_SERVICE_ROLE_KEY: z
+    .string()
+    .min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
 
   // Clerk Authentication
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required'),
-  CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z
+    .string()
+    .min(1, "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required"),
+  CLERK_SECRET_KEY: z.string().min(1, "CLERK_SECRET_KEY is required"),
 
   // Upstash Redis (for rate limiting)
-  UPSTASH_REDIS_REST_URL: z.string().url('UPSTASH_REDIS_REST_URL must be a valid URL').optional(),
+  UPSTASH_REDIS_REST_URL: z
+    .string()
+    .url("UPSTASH_REDIS_REST_URL must be a valid URL")
+    .optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 
   // Email Configuration (Resend)
@@ -41,35 +54,64 @@ const envSchema = z.object({
   // Security Configuration
   PASSWORD_HASH_ROUNDS: z
     .string()
-    .default('10')
+    .default("10")
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().min(10).max(15)),
 
   // File Upload Configuration
   MAX_FILE_SIZE: z
     .string()
-    .default('104857600')
+    .default("104857600")
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().positive()),
+
+  MAX_IMAGE_FILE_SIZE: z
+    .string()
+    .default("104857600")
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().positive()),
+
+  MAX_VIDEO_FILE_SIZE: z
+    .string()
+    .default("524288000")
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive()),
 
   MAX_FILES_PER_SHARE: z
     .string()
-    .default('50')
+    .default("50")
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive()),
 
-  ALLOWED_FILE_TYPES: z.string().default('image/jpeg,image/png,image/gif,image/webp'),
+  ALLOWED_FILE_TYPES: z
+    .string()
+    .default("image/jpeg,image/png,image/gif,image/webp"),
+  ALLOWED_IMAGE_FILE_TYPES: z
+    .string()
+    .default("image/jpeg,image/png,image/gif,image/webp"),
+  ALLOWED_VIDEO_FILE_TYPES: z
+    .string()
+    .default("video/mp4,video/webm,video/quicktime"),
 
   // Share Configuration
   DEFAULT_EXPIRATION_HOURS: z
     .string()
-    .default('48')
+    .default("48")
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive()),
 
+  DEFAULT_VIDEO_EXPIRATION_HOURS: z
+    .string()
+    .default("24")
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().positive()),
+
+  STANDARD_EXPIRATION_OPTIONS_HOURS: z.string().default("24,48,72,168"),
+  VIDEO_EXPIRATION_OPTIONS_HOURS: z.string().default("24,48,72,168"),
+
   MAX_EXPIRATION_DAYS: z
     .string()
-    .default('30')
+    .default("30")
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive()),
 
@@ -77,7 +119,7 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().optional(),
 
   // Monitoring (optional)
-  SENTRY_DSN: z.string().url().optional().or(z.literal('')),
+  SENTRY_DSN: z.string().url().optional().or(z.literal("")),
   POSTHOG_KEY: z.string().optional(),
 });
 
@@ -94,15 +136,17 @@ export function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missing = error.issues.map((err) => {
-        const path = err.path.join('.');
+        const path = err.path.join(".");
         return `  - ${path}: ${err.message}`;
       });
 
-      console.error('❌ Environment variable validation failed:\n');
-      console.error(missing.join('\n'));
-      console.error('\nPlease check your .env.local file and ensure all required variables are set.');
+      console.error("❌ Environment variable validation failed:\n");
+      console.error(missing.join("\n"));
+      console.error(
+        "\nPlease check your .env.local file and ensure all required variables are set.",
+      );
 
-      throw new Error('Environment validation failed');
+      throw new Error("Environment validation failed");
     }
     throw error;
   }
@@ -121,15 +165,15 @@ export function checkRequiredEnvVars(): {
 
   // Critical env vars
   const critical = [
-    'AWS_REGION',
-    'AWS_ACCESS_KEY_ID',
-    'AWS_SECRET_ACCESS_KEY',
-    'AWS_S3_BUCKET_NAME',
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
-    'CLERK_SECRET_KEY',
+    "AWS_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_S3_BUCKET_NAME",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "CLERK_SECRET_KEY",
   ];
 
   critical.forEach((key) => {
@@ -140,9 +184,9 @@ export function checkRequiredEnvVars(): {
 
   // Optional but recommended
   const recommended = [
-    'UPSTASH_REDIS_REST_URL',
-    'UPSTASH_REDIS_REST_TOKEN',
-    'RESEND_API_KEY',
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "RESEND_API_KEY",
   ];
 
   recommended.forEach((key) => {
@@ -163,7 +207,9 @@ export function checkRequiredEnvVars(): {
  * This function is kept for backward compatibility but should not be used
  */
 export function ensureJwtSecret(): string {
-  throw new Error('JWT authentication has been replaced with Clerk. Please use Clerk authentication instead.');
+  throw new Error(
+    "JWT authentication has been replaced with Clerk. Please use Clerk authentication instead.",
+  );
 }
 
 /**
@@ -192,11 +238,11 @@ export const featureFlags = {
   },
 
   isProduction: (): boolean => {
-    return process.env.NODE_ENV === 'production';
+    return process.env.NODE_ENV === "production";
   },
 
   isDevelopment: (): boolean => {
-    return process.env.NODE_ENV === 'development';
+    return process.env.NODE_ENV === "development";
   },
 };
 
@@ -206,23 +252,27 @@ export const featureFlags = {
 export function logEnvStatus(): void {
   const { valid, missing, warnings } = checkRequiredEnvVars();
 
-  console.log('\n🔧 Environment Configuration Status:\n');
+  console.log("\n🔧 Environment Configuration Status:\n");
 
   if (valid) {
-    console.log('✅ All critical environment variables are set');
+    console.log("✅ All critical environment variables are set");
   } else {
-    console.log('❌ Missing critical environment variables:');
+    console.log("❌ Missing critical environment variables:");
     missing.forEach((key) => console.log(`   - ${key}`));
   }
 
   if (warnings.length > 0) {
-    console.log('\n⚠️  Optional environment variables not set:');
+    console.log("\n⚠️  Optional environment variables not set:");
     warnings.forEach((key) => console.log(`   - ${key}`));
   }
 
-  console.log('\n📋 Feature Flags:');
-  console.log(`   - Rate Limiting: ${featureFlags.isRateLimitingEnabled() ? '✅' : '❌'}`);
-  console.log(`   - Email: ${featureFlags.isEmailEnabled() ? '✅' : '❌'}`);
-  console.log(`   - Monitoring: ${featureFlags.isMonitoringEnabled() ? '✅' : '❌'}`);
-  console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}\n`);
+  console.log("\n📋 Feature Flags:");
+  console.log(
+    `   - Rate Limiting: ${featureFlags.isRateLimitingEnabled() ? "✅" : "❌"}`,
+  );
+  console.log(`   - Email: ${featureFlags.isEmailEnabled() ? "✅" : "❌"}`);
+  console.log(
+    `   - Monitoring: ${featureFlags.isMonitoringEnabled() ? "✅" : "❌"}`,
+  );
+  console.log(`   - Environment: ${process.env.NODE_ENV || "development"}\n`);
 }

@@ -26,6 +26,12 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'About', href: '/about' },
 ];
 
+const SIGNED_IN_NAV_ITEMS: NavItem[] = [
+  { label: 'Home', href: '/', id: 'home' },
+  { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
+  { label: 'About', href: '/about' },
+];
+
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -136,6 +142,13 @@ export function Header() {
                 </SignInButton>
               </SignedOut>
               <SignedIn>
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium transition-colors hover:text-[var(--color-interactive)]"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
+                  Dashboard
+                </Link>
                 <UserButton
                   afterSignOutUrl="/"
                   appearance={{

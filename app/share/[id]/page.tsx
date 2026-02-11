@@ -1,22 +1,45 @@
-'use client';
+"use client";
 
 /**
  * Share Viewing Page
  * Clean Apple-inspired design for viewing and downloading shared files
  */
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FiDownload, FiLock, FiClock, FiFile, FiAlertCircle, FiArrowRight } from 'react-icons/fi';
-import { toast } from 'sonner';
-import { downloadFile, downloadAllAsZip, formatBytes, calculateTotalSize } from '@/lib/downloads/client-download';
-import type { FileMetadata } from '@/types/api';
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  FiDownload,
+  FiLock,
+  FiClock,
+  FiFile,
+  FiAlertCircle,
+  FiArrowRight,
+  FiVideo,
+} from "react-icons/fi";
+import { toast } from "sonner";
+import {
+  downloadFile,
+  downloadAllAsZip,
+  formatBytes,
+  calculateTotalSize,
+} from "@/lib/downloads/client-download";
+import type { FileMetadata } from "@/types/api";
+
+const isImageFile = (file: FileMetadata): boolean =>
+  file.mimeType.startsWith("image/");
+const isVideoFile = (file: FileMetadata): boolean =>
+  file.mimeType.startsWith("video/");
 
 export default function SharePage() {
   const params = useParams();
@@ -24,47 +47,67 @@ export default function SharePage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [requiresPassword, setRequiresPassword] = useState(false);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [files, setFiles] = useState<FileMetadata[]>([]);
-  const [shareInfo, setShareInfo] = useState<{ expiresAt: string; fileCount: number } | null>(null);
-  const [selectedImage, setSelectedImage] = useState<FileMetadata | null>(null);
-  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [shareInfo, setShareInfo] = useState<{
+    expiresAt: string;
+    fileCount: number;
+  } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(
+    null,
+  );
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [downloadAllProgress, setDownloadAllProgress] = useState(0);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
-  const [dialogImageLoaded, setDialogImageLoaded] = useState(false);
+  const [dialogMediaLoaded, setDialogMediaLoaded] = useState(false);
 
-  useEffect(() => {
-    checkShareAccess();
+  const loadFiles = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/share/${shareId}/files`);
+
+      if (!response.ok) {
+        throw new Error("Failed to load files");
+      }
+
+      const data = await response.json();
+      setFiles(data.files);
+      setShareInfo(data.shareInfo);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error loading files:", err);
+      setError("Failed to load files");
+      setIsLoading(false);
+    }
   }, [shareId]);
 
-  const checkShareAccess = async () => {
+  const checkShareAccess = useCallback(async () => {
     try {
       const response = await fetch(`/api/share/${shareId}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
 
       const data = await response.json();
 
-      if (response.status === 401 && data.message === 'Password required') {
+      if (response.status === 401 && data.message === "Password required") {
         setRequiresPassword(true);
         setIsLoading(false);
         return;
       }
 
       if (response.status === 410) {
-        setError('This share has expired');
+        setError("This share has expired");
         setIsLoading(false);
         return;
       }
 
       if (response.status === 404) {
-        setError('Share not found');
+        setError("Share not found");
         setIsLoading(false);
         return;
       }
@@ -73,25 +116,29 @@ export default function SharePage() {
         await loadFiles();
       }
     } catch (err) {
-      console.error('Error checking share access:', err);
-      setError('Failed to load share');
+      console.error("Error checking share access:", err);
+      setError("Failed to load share");
       setIsLoading(false);
     }
-  };
+  }, [loadFiles, shareId]);
+
+  useEffect(() => {
+    checkShareAccess();
+  }, [checkShareAccess]);
 
   const verifyPassword = async () => {
     setIsVerifying(true);
-    setError('');
+    setError("");
 
     try {
       const response = await fetch(`/api/share/${shareId}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
 
       if (response.status === 401) {
-        setError('Invalid password');
+        setError("Invalid password");
         setIsVerifying(false);
         return;
       }
@@ -101,29 +148,10 @@ export default function SharePage() {
         await loadFiles();
       }
     } catch (err) {
-      console.error('Error verifying password:', err);
-      setError('Failed to verify password');
+      console.error("Error verifying password:", err);
+      setError("Failed to verify password");
     } finally {
       setIsVerifying(false);
-    }
-  };
-
-  const loadFiles = async () => {
-    try {
-      const response = await fetch(`/api/share/${shareId}/files`);
-
-      if (!response.ok) {
-        throw new Error('Failed to load files');
-      }
-
-      const data = await response.json();
-      setFiles(data.files);
-      setShareInfo(data.shareInfo);
-      setIsLoading(false);
-    } catch (err) {
-      console.error('Error loading files:', err);
-      setError('Failed to load files');
-      setIsLoading(false);
     }
   };
 
@@ -133,7 +161,7 @@ export default function SharePage() {
       setDownloadProgress(0);
 
       const response = await fetch(`/api/share/${shareId}/download/${file.id}`);
-      if (!response.ok) throw new Error('Failed to get download URL');
+      if (!response.ok) throw new Error("Failed to get download URL");
 
       const { downloadUrl } = await response.json();
 
@@ -142,8 +170,8 @@ export default function SharePage() {
       });
 
       toast.success(`Downloaded ${file.filename}`);
-    } catch (err) {
-      toast.error('Failed to download file');
+    } catch {
+      toast.error("Failed to download file");
     } finally {
       setDownloadingFileId(null);
       setDownloadProgress(0);
@@ -159,9 +187,9 @@ export default function SharePage() {
         onProgress: (progress) => setDownloadAllProgress(progress.percentage),
       });
 
-      toast.success('All files downloaded successfully!');
-    } catch (err) {
-      toast.error('Failed to download files');
+      toast.success("All files downloaded successfully!");
+    } catch {
+      toast.error("Failed to download files");
     } finally {
       setIsDownloadingAll(false);
       setDownloadAllProgress(0);
@@ -173,17 +201,29 @@ export default function SharePage() {
     const expires = new Date(expiresAt);
     const diff = expires.getTime() - now.getTime();
 
-    if (diff < 0) return 'Expired';
+    if (diff < 0) return "Expired";
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours > 24) {
       const days = Math.floor(hours / 24);
-      return `${days} day${days > 1 ? 's' : ''}`;
+      return `${days} day${days > 1 ? "s" : ""}`;
     }
 
     return `${hours}h ${minutes}m`;
+  };
+
+  const handlePreviewOpen = (file: FileMetadata) => {
+    setDialogMediaLoaded(false);
+    setSelectedFile(file);
+  };
+
+  const closePreview = (open: boolean) => {
+    if (!open) {
+      setSelectedFile(null);
+      setDialogMediaLoaded(false);
+    }
   };
 
   // Password prompt
@@ -191,33 +231,36 @@ export default function SharePage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center p-4"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+        style={{ backgroundColor: "var(--color-bg-primary)" }}
       >
         <div
           className="w-full max-w-md rounded-2xl p-8"
           style={{
-            backgroundColor: 'var(--color-bg-elevated)',
-            border: '1px solid var(--color-border)',
-            boxShadow: 'var(--shadow-medium)',
+            backgroundColor: "var(--color-bg-elevated)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--shadow-medium)",
           }}
         >
           {/* Icon */}
           <div className="text-center mb-6">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: 'rgba(0, 113, 227, 0.1)' }}
+              style={{ backgroundColor: "rgba(0, 113, 227, 0.1)" }}
             >
-              <FiLock className="w-8 h-8" style={{ color: 'var(--color-interactive)' }} />
+              <FiLock
+                className="w-8 h-8"
+                style={{ color: "var(--color-interactive)" }}
+              />
             </div>
             <h1
               className="text-2xl font-semibold"
-              style={{ color: 'var(--color-text-primary)' }}
+              style={{ color: "var(--color-text-primary)" }}
             >
               Password Required
             </h1>
             <p
               className="mt-2 text-sm"
-              style={{ color: 'var(--color-text-secondary)' }}
+              style={{ color: "var(--color-text-secondary)" }}
             >
               This share is password protected
             </p>
@@ -232,7 +275,7 @@ export default function SharePage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
+                onKeyDown={(e) => e.key === "Enter" && verifyPassword()}
                 placeholder="Enter password"
                 disabled={isVerifying}
               />
@@ -242,8 +285,8 @@ export default function SharePage() {
               <div
                 className="p-3 rounded-lg text-sm flex items-center gap-2"
                 style={{
-                  backgroundColor: 'rgba(255, 59, 48, 0.1)',
-                  color: 'var(--color-error)',
+                  backgroundColor: "rgba(255, 59, 48, 0.1)",
+                  color: "var(--color-error)",
                 }}
               >
                 <FiAlertCircle className="w-4 h-4" />
@@ -257,7 +300,7 @@ export default function SharePage() {
               className="w-full"
               size="lg"
             >
-              {isVerifying ? 'Verifying...' : 'Access Share'}
+              {isVerifying ? "Verifying..." : "Access Share"}
               {!isVerifying && <FiArrowRight className="ml-2 h-4 w-4" />}
             </Button>
           </div>
@@ -271,33 +314,30 @@ export default function SharePage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center p-4"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+        style={{ backgroundColor: "var(--color-bg-primary)" }}
       >
         <div
           className="w-full max-w-md rounded-2xl p-8 text-center"
           style={{
-            backgroundColor: 'var(--color-bg-elevated)',
-            border: '1px solid var(--color-border)',
-            boxShadow: 'var(--shadow-medium)',
+            backgroundColor: "var(--color-bg-elevated)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--shadow-medium)",
           }}
         >
           <FiAlertCircle
             className="w-16 h-16 mx-auto mb-4"
-            style={{ color: 'var(--color-error)' }}
+            style={{ color: "var(--color-error)" }}
           />
           <h2
             className="text-2xl font-semibold mb-2"
-            style={{ color: 'var(--color-text-primary)' }}
+            style={{ color: "var(--color-text-primary)" }}
           >
             Error
           </h2>
-          <p
-            className="mb-6"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
+          <p className="mb-6" style={{ color: "var(--color-text-secondary)" }}>
             {error}
           </p>
-          <Button onClick={() => window.location.href = '/'}>
+          <Button onClick={() => (window.location.href = "/")}>
             Create New Share
           </Button>
         </div>
@@ -310,7 +350,7 @@ export default function SharePage() {
     return (
       <div
         className="min-h-screen p-4"
-        style={{ backgroundColor: 'var(--color-bg-primary)' }}
+        style={{ backgroundColor: "var(--color-bg-primary)" }}
       >
         <div className="max-w-6xl mx-auto py-8">
           <Skeleton className="h-12 w-64 mx-auto mb-8" />
@@ -328,14 +368,14 @@ export default function SharePage() {
   return (
     <div
       className="min-h-screen p-4"
-      style={{ backgroundColor: 'var(--color-bg-primary)' }}
+      style={{ backgroundColor: "var(--color-bg-primary)" }}
     >
       <div className="max-w-7xl mx-auto py-8">
         {/* Header */}
         <div className="text-center mb-10">
           <h1
             className="text-4xl font-bold mb-4"
-            style={{ color: 'var(--color-text-primary)' }}
+            style={{ color: "var(--color-text-primary)" }}
           >
             Shared Files
           </h1>
@@ -343,15 +383,20 @@ export default function SharePage() {
           {shareInfo && (
             <div
               className="flex items-center justify-center gap-6 text-sm"
-              style={{ color: 'var(--color-text-secondary)' }}
+              style={{ color: "var(--color-text-secondary)" }}
             >
               <div className="flex items-center gap-2">
                 <FiFile className="w-4 h-4" />
-                <span>{shareInfo.fileCount} files ({formatBytes(calculateTotalSize(files))})</span>
+                <span>
+                  {shareInfo.fileCount} files (
+                  {formatBytes(calculateTotalSize(files))})
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <FiClock className="w-4 h-4" />
-                <span>Expires in {formatTimeRemaining(shareInfo.expiresAt)}</span>
+                <span>
+                  Expires in {formatTimeRemaining(shareInfo.expiresAt)}
+                </span>
               </div>
             </div>
           )}
@@ -385,138 +430,234 @@ export default function SharePage() {
           <div
             className="text-center p-12 rounded-2xl"
             style={{
-              backgroundColor: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border)',
+              backgroundColor: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border)",
             }}
           >
             <FiFile
               className="w-16 h-16 mx-auto mb-4"
-              style={{ color: 'var(--color-text-tertiary)' }}
+              style={{ color: "var(--color-text-tertiary)" }}
             />
-            <p style={{ color: 'var(--color-text-secondary)' }}>
+            <p style={{ color: "var(--color-text-secondary)" }}>
               No files in this share
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {files.map((file) => (
-              <div
-                key={file.id}
-                className="rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg"
-                style={{
-                  backgroundColor: 'var(--color-bg-elevated)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                {/* Image Preview with Progressive Loading */}
+            {files.map((file) => {
+              const isImage = isImageFile(file);
+              const isVideo = isVideoFile(file);
+
+              return (
                 <div
-                  className="relative h-48 cursor-pointer overflow-hidden"
-                  style={{ backgroundColor: 'var(--color-bg-secondary)' }}
-                  onClick={() => {
-                    setDialogImageLoaded(false);
-                    setSelectedImage(file);
+                  key={file.id}
+                  className="rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg"
+                  style={{
+                    backgroundColor: "var(--color-bg-elevated)",
+                    border: "1px solid var(--color-border)",
                   }}
                 >
-                  {/* Skeleton Placeholder */}
-                  {!loadedImages.has(file.id) && (
-                    <div className="absolute inset-0 animate-pulse" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
-                      <div className="flex items-center justify-center h-full">
-                        <FiFile className="w-8 h-8" style={{ color: 'var(--color-text-tertiary)' }} />
-                      </div>
-                    </div>
-                  )}
-                  <img
-                    src={file.previewUrl}
-                    alt={file.filename}
-                    loading="lazy"
-                    onLoad={() => setLoadedImages(prev => new Set(prev).add(file.id))}
-                    className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
-                    style={{
-                      opacity: loadedImages.has(file.id) ? 1 : 0,
-                      transform: loadedImages.has(file.id) ? 'scale(1)' : 'scale(1.02)',
-                    }}
-                  />
-                </div>
-
-                {/* File Info */}
-                <div className="p-4">
-                  <p
-                    className="font-medium truncate mb-1"
-                    style={{ color: 'var(--color-text-primary)' }}
-                    title={file.filename}
+                  <div
+                    className="relative h-48 cursor-pointer overflow-hidden"
+                    style={{ backgroundColor: "var(--color-bg-secondary)" }}
+                    onClick={() => handlePreviewOpen(file)}
                   >
-                    {file.filename}
-                  </p>
-                  <div className="flex items-center justify-between text-sm mb-3">
-                    <span style={{ color: 'var(--color-text-tertiary)' }}>
-                      {formatBytes(file.size)}
-                    </span>
-                    <Badge variant="secondary">
-                      {file.mimeType.split('/')[1].toUpperCase()}
-                    </Badge>
-                  </div>
-                  <Button
-                    onClick={() => handleDownloadFile(file)}
-                    disabled={downloadingFileId === file.id}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    {downloadingFileId === file.id ? (
-                      <span className="flex items-center gap-2">
-                        <span className="animate-spin">⟳</span>
-                        {Math.round(downloadProgress)}%
-                      </span>
-                    ) : (
+                    {isImage && (
                       <>
-                        <FiDownload className="w-4 h-4 mr-2" />
-                        Download
+                        {!loadedImages.has(file.id) && (
+                          <div
+                            className="absolute inset-0 animate-pulse"
+                            style={{
+                              backgroundColor: "var(--color-bg-tertiary)",
+                            }}
+                          >
+                            <div className="flex items-center justify-center h-full">
+                              <FiFile
+                                className="w-8 h-8"
+                                style={{ color: "var(--color-text-tertiary)" }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <img
+                          src={file.previewUrl}
+                          alt={file.filename}
+                          loading="lazy"
+                          onLoad={() =>
+                            setLoadedImages((previous) =>
+                              new Set(previous).add(file.id),
+                            )
+                          }
+                          className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
+                          style={{
+                            opacity: loadedImages.has(file.id) ? 1 : 0,
+                            transform: loadedImages.has(file.id)
+                              ? "scale(1)"
+                              : "scale(1.02)",
+                          }}
+                        />
                       </>
                     )}
-                  </Button>
+
+                    {isVideo && (
+                      <>
+                        <video
+                          src={file.previewUrl}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                        <div
+                          className="absolute bottom-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            color: "white",
+                            backgroundColor: "rgba(0, 0, 0, 0.65)",
+                          }}
+                        >
+                          VIDEO
+                        </div>
+                      </>
+                    )}
+
+                    {!isImage && !isVideo && (
+                      <div className="flex items-center justify-center h-full">
+                        <FiFile
+                          className="w-8 h-8"
+                          style={{ color: "var(--color-text-tertiary)" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* File Info */}
+                  <div className="p-4">
+                    <p
+                      className="font-medium truncate mb-1"
+                      style={{ color: "var(--color-text-primary)" }}
+                      title={file.filename}
+                    >
+                      {file.filename}
+                    </p>
+                    <div className="flex items-center justify-between text-sm mb-3">
+                      <span style={{ color: "var(--color-text-tertiary)" }}>
+                        {formatBytes(file.size)}
+                      </span>
+                      <Badge variant="secondary">
+                        {file.mimeType.split("/")[1]?.toUpperCase() ||
+                          file.mimeType.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <Button
+                      onClick={() => handleDownloadFile(file)}
+                      disabled={downloadingFileId === file.id}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      {downloadingFileId === file.id ? (
+                        <span className="flex items-center gap-2">
+                          <span className="animate-spin">⟳</span>
+                          {Math.round(downloadProgress)}%
+                        </span>
+                      ) : (
+                        <>
+                          <FiDownload className="w-4 h-4 mr-2" />
+                          Download
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
-        {/* Image Preview Dialog */}
-        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        {/* Preview Dialog */}
+        <Dialog open={!!selectedFile} onOpenChange={closePreview}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>{selectedImage?.filename}</DialogTitle>
+              <DialogTitle>{selectedFile?.filename}</DialogTitle>
             </DialogHeader>
-            {selectedImage && (
+            {selectedFile && (
               <div className="space-y-4">
-                {/* Dialog Image with Loading State */}
-                <div className="relative w-full max-h-[70vh] rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-                  {!dialogImageLoaded && (
-                    <div className="absolute inset-0 animate-pulse flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg-tertiary)', minHeight: '300px' }}>
+                <div
+                  className="relative w-full max-h-[70vh] rounded-lg overflow-hidden"
+                  style={{ backgroundColor: "var(--color-bg-secondary)" }}
+                >
+                  {!dialogMediaLoaded && (
+                    <div
+                      className="absolute inset-0 animate-pulse flex items-center justify-center"
+                      style={{
+                        backgroundColor: "var(--color-bg-tertiary)",
+                        minHeight: "300px",
+                      }}
+                    >
                       <div className="text-center">
-                        <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-3" style={{ borderColor: 'var(--color-interactive)', borderTopColor: 'transparent' }} />
-                        <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>Loading full image...</p>
+                        <div
+                          className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-3"
+                          style={{
+                            borderColor: "var(--color-interactive)",
+                            borderTopColor: "transparent",
+                          }}
+                        />
+                        <p
+                          className="text-sm"
+                          style={{ color: "var(--color-text-tertiary)" }}
+                        >
+                          Loading preview...
+                        </p>
                       </div>
                     </div>
                   )}
-                  <img
-                    src={selectedImage.previewUrl}
-                    alt={selectedImage.filename}
-                    onLoad={() => setDialogImageLoaded(true)}
-                    className="w-full h-auto max-h-[70vh] object-contain transition-opacity duration-300"
-                    style={{ opacity: dialogImageLoaded ? 1 : 0 }}
-                  />
+
+                  {isImageFile(selectedFile) && (
+                    <img
+                      src={selectedFile.previewUrl}
+                      alt={selectedFile.filename}
+                      onLoad={() => setDialogMediaLoaded(true)}
+                      className="w-full h-auto max-h-[70vh] object-contain transition-opacity duration-300"
+                      style={{ opacity: dialogMediaLoaded ? 1 : 0 }}
+                    />
+                  )}
+
+                  {isVideoFile(selectedFile) && (
+                    <video
+                      src={selectedFile.previewUrl}
+                      controls
+                      preload="metadata"
+                      onLoadedData={() => setDialogMediaLoaded(true)}
+                      className="w-full max-h-[70vh]"
+                      style={{ opacity: dialogMediaLoaded ? 1 : 0 }}
+                    />
+                  )}
+
+                  {!isImageFile(selectedFile) && !isVideoFile(selectedFile) && (
+                    <div
+                      className="flex flex-col items-center justify-center py-16"
+                      style={{ color: "var(--color-text-tertiary)" }}
+                    >
+                      <FiVideo className="mb-3 h-10 w-10" />
+                      <p>No preview available for this file type.</p>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                  <span>{formatBytes(selectedImage.size)}</span>
-                  <Badge variant="secondary">{selectedImage.mimeType}</Badge>
+
+                <div
+                  className="flex items-center justify-between text-sm"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
+                  <span>{formatBytes(selectedFile.size)}</span>
+                  <Badge variant="secondary">{selectedFile.mimeType}</Badge>
                 </div>
                 <Button
-                  onClick={() => handleDownloadFile(selectedImage)}
-                  disabled={downloadingFileId === selectedImage.id}
+                  onClick={() => handleDownloadFile(selectedFile)}
+                  disabled={downloadingFileId === selectedFile.id}
                   className="w-full"
                   size="lg"
                 >
-                  {downloadingFileId === selectedImage.id ? (
+                  {downloadingFileId === selectedFile.id ? (
                     <span className="flex items-center gap-2">
                       <span className="animate-spin">⟳</span>
                       {Math.round(downloadProgress)}%
@@ -524,7 +665,7 @@ export default function SharePage() {
                   ) : (
                     <>
                       <FiDownload className="w-5 h-5 mr-2" />
-                      Download {selectedImage.filename}
+                      Download {selectedFile.filename}
                     </>
                   )}
                 </Button>

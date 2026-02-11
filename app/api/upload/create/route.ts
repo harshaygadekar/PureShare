@@ -3,16 +3,25 @@
  * Creates a new share and returns the share link
  */
 
-import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/db/supabase';
-import { generateShareLink } from '@/lib/security/share-link';
-import { hashPassword } from '@/lib/security/password';
-import { createShareSchema } from '@/lib/validations/share';
-import { successResponse, badRequestResponse, serverErrorResponse } from '@/lib/utils/api-response';
-import type { CreateShareResponse } from '@/types/api';
+import { auth } from "@clerk/nextjs/server";
+import { NextRequest } from "next/server";
+import { supabaseAdmin } from "@/lib/db/supabase";
+import { generateShareLink } from "@/lib/security/share-link";
+import { hashPassword } from "@/lib/security/password";
+import { createShareSchema } from "@/lib/validations/share";
+import {
+  successResponse,
+  badRequestResponse,
+  serverErrorResponse,
+} from "@/lib/utils/api-response";
+import { toDatabaseUserId } from "@/lib/utils/user-id";
+import type { CreateShareResponse } from "@/types/api";
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user (optional - allows anonymous shares)
+    const { userId } = await auth();
+
     const body = await request.json();
 
     // Validate input
@@ -21,7 +30,8 @@ export async function POST(request: NextRequest) {
       return badRequestResponse(validation.error.issues[0].message);
     }
 
-    const { password, expirationHours } = validation.data;
+    const { password, expirationHours, expirationProfile } = validation.data;
+    const dbUserId = toDatabaseUserId(userId);
 
     // Generate unique share link
     let shareLink: string;
@@ -33,9 +43,9 @@ export async function POST(request: NextRequest) {
 
       // Check if share link already exists
       const { data: existing } = await supabaseAdmin
-        .from('shares')
-        .select('id')
-        .eq('share_link', shareLink)
+        .from("shares")
+        .select("id")
+        .eq("share_link", shareLink)
         .single();
 
       if (!existing) break;
@@ -43,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (attempts === maxAttempts) {
-      return serverErrorResponse('Failed to generate unique share link');
+      return serverErrorResponse("Failed to generate unique share link");
     }
 
     // Calculate expiration time
@@ -53,21 +63,43 @@ export async function POST(request: NextRequest) {
     // Hash password if provided
     const passwordHash = password ? await hashPassword(password) : null;
 
+    // Only set owner when that UUID exists in users table (shares.user_id FK -> users.id).
+    let ownerUserId: string | null = null;
+    if (dbUserId) {
+      const { data: ownerRecord, error: ownerLookupError } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("id", dbUserId)
+        .maybeSingle();
+
+      if (ownerLookupError) {
+        console.error("Error looking up owner user:", ownerLookupError);
+      } else if (ownerRecord) {
+        ownerUserId = dbUserId;
+      }
+    }
+
     // Insert share into database
     const { data: share, error } = await supabaseAdmin
-      .from('shares')
+      .from("shares")
       .insert({
         share_link: shareLink!,
         password_hash: passwordHash,
         expires_at: expiresAt.toISOString(),
         file_count: 0,
+        has_image: false,
+        has_video: false,
+        expiration_profile: expirationProfile,
+        expiration_hours_selected: expirationHours,
+        user_id: ownerUserId,
+        title: body.title || null,
       })
-      .select('id, share_link, expires_at')
+      .select("id, share_link, expires_at")
       .single();
 
     if (error) {
-      console.error('Error creating share:', error);
-      return serverErrorResponse('Failed to create share');
+      console.error("Error creating share:", error);
+      return serverErrorResponse("Failed to create share");
     }
 
     const response: CreateShareResponse = {
@@ -78,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     return successResponse(response, 201);
   } catch (error) {
-    console.error('Unexpected error in create share:', error);
-    return serverErrorResponse('An unexpected error occurred');
+    console.error("Unexpected error in create share:", error);
+    return serverErrorResponse("An unexpected error occurred");
   }
 }
