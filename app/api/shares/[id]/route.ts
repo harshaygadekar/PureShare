@@ -6,9 +6,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/db/supabase";
+import { resolveDatabaseUserId } from "@/lib/db/user-resolution";
 import { hashPassword } from "@/lib/security/password";
 import { deleteFiles } from "@/lib/storage/s3";
-import { toDatabaseUserId } from "@/lib/utils/user-id";
 import {
   successResponse,
   unauthorizedResponse,
@@ -23,7 +23,9 @@ interface RouteParams {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { userId } = await auth();
-  const dbUserId = toDatabaseUserId(userId);
+  const dbUserId = await resolveDatabaseUserId(userId, {
+    allowProvision: false,
+  });
   const { id } = await params;
 
   if (!dbUserId) {
@@ -93,7 +95,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { userId } = await auth();
-  const dbUserId = toDatabaseUserId(userId);
+  const dbUserId = await resolveDatabaseUserId(userId, {
+    allowProvision: false,
+  });
   const { id } = await params;
 
   if (!dbUserId) {

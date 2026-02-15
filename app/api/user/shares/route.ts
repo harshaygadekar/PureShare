@@ -6,16 +6,18 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/db/supabase";
+import { resolveDatabaseUserId } from "@/lib/db/user-resolution";
 import {
   successResponse,
   unauthorizedResponse,
   serverErrorResponse,
 } from "@/lib/utils/api-response";
-import { toDatabaseUserId } from "@/lib/utils/user-id";
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
-  const dbUserId = toDatabaseUserId(userId);
+  const dbUserId = await resolveDatabaseUserId(userId, {
+    allowProvision: true,
+  });
 
   if (!dbUserId) {
     return unauthorizedResponse();
@@ -31,7 +33,10 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin
     .from("shares")
-    .select("*, files(*)", { count: "exact" })
+    .select(
+      "id, share_link, password_hash, expires_at, created_at, file_count, has_image, has_video, expiration_profile, expiration_hours_selected, user_id, title",
+      { count: "exact" },
+    )
     .eq("user_id", dbUserId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);

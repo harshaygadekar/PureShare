@@ -7,10 +7,10 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/db/supabase";
-import { toDatabaseUserId } from "@/lib/utils/user-id";
+import { resolveDatabaseUserId } from "@/lib/db/user-resolution";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { ShareList } from "@/components/dashboard/share-list";
-import { ArrowRight } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import type { UserStats, ShareWithFiles } from "@/types/database";
 
 async function getUserStats(userId: string): Promise<UserStats> {
@@ -19,11 +19,11 @@ async function getUserStats(userId: string): Promise<UserStats> {
   const [totalResult, activeResult] = await Promise.all([
     supabaseAdmin
       .from("shares")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
     supabaseAdmin
       .from("shares")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .gt("expires_at", now),
   ]);
@@ -41,7 +41,9 @@ async function getRecentShares(
 ): Promise<ShareWithFiles[]> {
   const { data } = await supabaseAdmin
     .from("shares")
-    .select("*, files(*)")
+    .select(
+      "id, share_link, password_hash, expires_at, created_at, file_count, has_image, has_video, expiration_profile, expiration_hours_selected, user_id, title",
+    )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -51,16 +53,31 @@ async function getRecentShares(
 
 export default async function DashboardPage() {
   const { userId } = await auth();
-  const dbUserId = toDatabaseUserId(userId);
+  const dbUserId = await resolveDatabaseUserId(userId, {
+    allowProvision: true,
+  });
 
   if (!dbUserId) {
     redirect("/");
   }
 
-  const [stats, recentShares] = await Promise.all([
-    getUserStats(dbUserId),
-    getRecentShares(dbUserId),
-  ]);
+  let stats: UserStats = {
+    totalShares: 0,
+    activeShares: 0,
+    expiredShares: 0,
+  };
+  let recentShares: ShareWithFiles[] = [];
+  let hasLoadError = false;
+
+  try {
+    [stats, recentShares] = await Promise.all([
+      getUserStats(dbUserId),
+      getRecentShares(dbUserId),
+    ]);
+  } catch (error) {
+    console.error("Failed loading dashboard overview:", error);
+    hasLoadError = true;
+  }
 
   return (
     <div className="space-y-10">
@@ -78,6 +95,25 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
+      {hasLoadError && (
+        <div
+          className="rounded-lg border px-4 py-3 flex items-start gap-3"
+          style={{
+            borderColor: "var(--color-error)",
+            backgroundColor: "var(--color-error-bg)",
+          }}
+        >
+          <AlertTriangle
+            className="h-4 w-4 mt-0.5"
+            style={{ color: "var(--color-error)" }}
+          />
+          <p className="text-sm" style={{ color: "var(--color-error)" }}>
+            We could not load your latest dashboard data. Please refresh and try
+            again.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard
           title="Total Shares"

@@ -3,9 +3,10 @@
  * Creates a new share and returns the share link
  */
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/db/supabase";
+import { resolveDatabaseUserId } from "@/lib/db/user-resolution";
 import { generateShareLink } from "@/lib/security/share-link";
 import { hashPassword } from "@/lib/security/password";
 import { createShareSchema } from "@/lib/validations/share";
@@ -14,7 +15,6 @@ import {
   badRequestResponse,
   serverErrorResponse,
 } from "@/lib/utils/api-response";
-import { toDatabaseUserId } from "@/lib/utils/user-id";
 import type { CreateShareResponse } from "@/types/api";
 
 export async function POST(request: NextRequest) {
@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { password, expirationHours, expirationProfile } = validation.data;
-    const dbUserId = toDatabaseUserId(userId);
 
     // Generate unique share link
     let shareLink: string;
@@ -63,19 +62,25 @@ export async function POST(request: NextRequest) {
     // Hash password if provided
     const passwordHash = password ? await hashPassword(password) : null;
 
-    // Only set owner when that UUID exists in users table (shares.user_id FK -> users.id).
+    // Ensure authenticated users always map to a real users.id row.
     let ownerUserId: string | null = null;
-    if (dbUserId) {
-      const { data: ownerRecord, error: ownerLookupError } = await supabaseAdmin
-        .from("users")
-        .select("id")
-        .eq("id", dbUserId)
-        .maybeSingle();
+    if (userId) {
+      const user = await currentUser();
+      const fullName = [user?.firstName, user?.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
 
-      if (ownerLookupError) {
-        console.error("Error looking up owner user:", ownerLookupError);
-      } else if (ownerRecord) {
-        ownerUserId = dbUserId;
+      ownerUserId = await resolveDatabaseUserId(userId, {
+        allowProvision: true,
+        email: user?.primaryEmailAddress?.emailAddress ?? null,
+        name: fullName || user?.username || null,
+      });
+
+      if (!ownerUserId) {
+        return serverErrorResponse(
+          "Failed to link authenticated account. Please try again.",
+        );
       }
     }
 

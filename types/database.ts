@@ -55,5 +55,5 @@ export interface UserStats {
 }
 
 export interface ShareWithFiles extends Share {
-  files: File[];
+  files?: File[];
 }

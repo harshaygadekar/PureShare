@@ -4,14 +4,14 @@
  * Flat, minimal design with blur backdrop on scroll
  */
 
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { FiMenu, FiX } from 'react-icons/fi';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { FiMenu, FiX } from "react-icons/fi";
 
 interface NavItem {
   label: string;
@@ -20,16 +20,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', id: 'home' },
-  { label: 'Features', href: '/#features', id: 'features' },
-  { label: 'How It Works', href: '/#how-it-works', id: 'how-it-works' },
-  { label: 'About', href: '/about' },
-];
-
-const SIGNED_IN_NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', id: 'home' },
-  { label: 'Dashboard', href: '/dashboard', id: 'dashboard' },
-  { label: 'About', href: '/about' },
+  { label: "Home", href: "/" },
+  { label: "Features", href: "/features" },
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "About", href: "/about" },
 ];
 
 export function Header() {
@@ -41,8 +35,8 @@ export function Header() {
       setScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Close mobile menu on resize to desktop
@@ -53,43 +47,34 @@ export function Header() {
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [mobileMenuOpen]);
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = () => {
     setMobileMenuOpen(false);
-
-    // Handle anchor links
-    if (href.startsWith('/#')) {
-      const elementId = href.substring(2);
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
   };
 
   return (
     <>
       <header
         className={cn(
-          'fixed left-0 right-0 top-0 z-50 transition-all duration-300 border-b',
+          "fixed left-0 right-0 top-0 z-50 transition-all duration-300 border-b",
           scrolled
-            ? 'backdrop-apple border-[var(--color-border)]'
-            : 'bg-[var(--color-bg-primary)] border-[var(--color-border)]'
+            ? "backdrop-apple border-[var(--color-border)]"
+            : "bg-[var(--color-bg-primary)] border-[var(--color-border)]",
         )}
       >
         <nav
@@ -99,8 +84,9 @@ export function Header() {
           {/* Logo */}
           <Link
             href="/"
+            prefetch
             className="flex items-center gap-2 text-xl font-semibold"
-            style={{ color: 'var(--color-text-primary)' }}
+            style={{ color: "var(--color-text-primary)" }}
           >
             <span className="bg-gradient-to-r from-[var(--color-interactive)] to-[var(--color-interactive-hover)] bg-clip-text text-transparent">
               PureShare
@@ -113,9 +99,10 @@ export function Header() {
               <Link
                 key={item.label}
                 href={item.href}
-                onClick={() => handleNavClick(item.href)}
+                prefetch
+                onClick={handleNavClick}
                 className="text-sm font-medium transition-colors hover:text-[var(--color-interactive)]"
-                style={{ color: 'var(--color-text-secondary)' }}
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 {item.label}
               </Link>
@@ -130,7 +117,7 @@ export function Header() {
                 <SignInButton mode="modal">
                   <button
                     className="text-sm font-medium transition-colors hover:text-[var(--color-interactive)]"
-                    style={{ color: 'var(--color-text-secondary)' }}
+                    style={{ color: "var(--color-text-secondary)" }}
                   >
                     Sign in
                   </button>
@@ -144,8 +131,9 @@ export function Header() {
               <SignedIn>
                 <Link
                   href="/dashboard"
+                  prefetch
                   className="text-sm font-medium transition-colors hover:text-[var(--color-interactive)]"
-                  style={{ color: 'var(--color-text-secondary)' }}
+                  style={{ color: "var(--color-text-secondary)" }}
                 >
                   Dashboard
                 </Link>
@@ -153,7 +141,7 @@ export function Header() {
                   afterSignOutUrl="/"
                   appearance={{
                     elements: {
-                      avatarBox: 'h-8 w-8',
+                      avatarBox: "h-8 w-8",
                     },
                   }}
                 />
@@ -164,8 +152,8 @@ export function Header() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="flex h-10 w-10 items-center justify-center rounded-lg md:hidden"
-              style={{ color: 'var(--color-text-primary)' }}
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              style={{ color: "var(--color-text-primary)" }}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
@@ -198,11 +186,12 @@ export function Header() {
                 >
                   <Link
                     href={item.href}
-                    onClick={() => handleNavClick(item.href)}
+                    prefetch
+                    onClick={handleNavClick}
                     className="block border-b py-4 text-lg font-medium"
                     style={{
-                      color: 'var(--color-text-primary)',
-                      borderColor: 'var(--color-border)',
+                      color: "var(--color-text-primary)",
+                      borderColor: "var(--color-border)",
                     }}
                   >
                     {item.label}
@@ -230,13 +219,13 @@ export function Header() {
                       afterSignOutUrl="/"
                       appearance={{
                         elements: {
-                          avatarBox: 'h-10 w-10',
+                          avatarBox: "h-10 w-10",
                         },
                       }}
                     />
                     <span
                       className="text-sm"
-                      style={{ color: 'var(--color-text-secondary)' }}
+                      style={{ color: "var(--color-text-secondary)" }}
                     >
                       Manage account
                     </span>

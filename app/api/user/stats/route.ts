@@ -5,17 +5,19 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/db/supabase";
+import { resolveDatabaseUserId } from "@/lib/db/user-resolution";
 import {
   successResponse,
   unauthorizedResponse,
   serverErrorResponse,
 } from "@/lib/utils/api-response";
-import { toDatabaseUserId } from "@/lib/utils/user-id";
 import type { UserStats } from "@/types/database";
 
 export async function GET() {
   const { userId } = await auth();
-  const dbUserId = toDatabaseUserId(userId);
+  const dbUserId = await resolveDatabaseUserId(userId, {
+    allowProvision: true,
+  });
 
   if (!dbUserId) {
     return unauthorizedResponse();
@@ -27,7 +29,7 @@ export async function GET() {
     // Get total shares count
     const { count: totalShares, error: totalError } = await supabaseAdmin
       .from("shares")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", dbUserId);
 
     if (totalError) throw totalError;
@@ -35,7 +37,7 @@ export async function GET() {
     // Get active shares count
     const { count: activeShares, error: activeError } = await supabaseAdmin
       .from("shares")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", dbUserId)
       .gt("expires_at", now);
 
