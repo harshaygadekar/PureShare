@@ -108,7 +108,10 @@ export async function downloadAllAsZip(
 
   try {
     // Fetch the ZIP from the API
-    const response = await fetch(`/api/share/${shareId}/download-all`, { signal });
+    const response = await fetch(`/api/share/${shareId}/download-all`, { 
+      signal,
+      credentials: 'include',
+    });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Unknown error' }));

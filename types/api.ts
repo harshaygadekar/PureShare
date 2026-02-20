@@ -53,6 +53,7 @@ export interface FileMetadata {
   mimeType: string;
   uploadedAt: string;
   previewUrl: string;
+  downloadCount?: number;
 }
 
 export interface DownloadUrlResponse {

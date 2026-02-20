@@ -2,6 +2,13 @@
  * Database type definitions for Supabase tables
  */
 
+export interface User {
+  id: string;
+  email: string;
+  clerk_user_id?: string;
+  created_at: string;
+}
+
 export interface Share {
   id: string;
   share_link: string;

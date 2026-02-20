@@ -20,6 +20,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/layout/header";
 import { Container } from "@/components/layout/container";
+import { QRCodeModal } from "@/components/share/qr-code-modal";
 import {
   FiCopy,
   FiCheck,
@@ -56,7 +57,9 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [shareLink, setShareLink] = useState("");
+  const [shareLinkId, setShareLinkId] = useState("");
   const [copied, setCopied] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
   const [error, setError] = useState("");
   const hasVideoFiles = useMemo(
     () => files.some((file) => getMediaKindFromMimeType(file.type) === "video"),
@@ -158,6 +161,7 @@ export default function UploadPage() {
 
       const fullLink = `${APP_CONFIG.url}/share/${link}`;
       setShareLink(fullLink);
+      setShareLinkId(link);
     } catch (error) {
       console.error("Upload error:", error);
       const errorMessage =
@@ -259,6 +263,26 @@ export default function UploadPage() {
                           <FiCopy className="h-4 w-4" />
                         )}
                       </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowQRCode(true)}
+                        className="shrink-0"
+                        title="Show QR Code"
+                      >
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          className="w-4 h-4"
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2"
+                        >
+                          <rect x="3" y="3" width="7" height="7" />
+                          <rect x="14" y="3" width="7" height="7" />
+                          <rect x="3" y="14" width="7" height="7" />
+                          <rect x="14" y="14" width="4" height="4" />
+                          <path d="M14 18h4v4h-4z" />
+                        </svg>
+                      </Button>
                     </div>
                   </div>
 
@@ -312,6 +336,13 @@ export default function UploadPage() {
                   </Button>
                 </div>
               </motion.div>
+
+              {/* QR Code Modal */}
+              <QRCodeModal
+                isOpen={showQRCode}
+                onClose={() => setShowQRCode(false)}
+                shareLink={shareLinkId}
+              />
             </div>
           </Container>
         </main>

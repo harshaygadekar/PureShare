@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutDashboard, FolderOpen, Settings, Plus } from "lucide-react";
+import { LayoutDashboard, FolderOpen, Settings, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
@@ -21,6 +21,11 @@ const NAV_ITEMS = [
     label: "My Shares",
     href: "/dashboard/shares",
     icon: FolderOpen,
+  },
+  {
+    label: "File Requests",
+    href: "/dashboard/requests",
+    icon: Upload,
   },
   {
     label: "Settings",

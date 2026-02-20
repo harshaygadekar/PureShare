@@ -83,3 +83,13 @@ export function generateS3Key(shareId: string, filename: string): string {
   const sanitized = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `uploads/${shareId}/${sanitized}`;
 }
+
+/**
+ * Generate S3 key for a request file
+ */
+export function getS3KeyForRequestFile(requestId: string, filename: string): string {
+  // Sanitize filename to prevent issues
+  const sanitized = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const timestamp = Date.now();
+  return `requests/${requestId}/${timestamp}-${sanitized}`;
+}

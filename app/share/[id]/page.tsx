@@ -26,6 +26,7 @@ import {
   FiAlertCircle,
   FiArrowRight,
   FiVideo,
+  FiShare2,
 } from "react-icons/fi";
 import { toast } from "sonner";
 import {
@@ -34,6 +35,9 @@ import {
   formatBytes,
   calculateTotalSize,
 } from "@/lib/downloads/client-download";
+import { QRCodeModal } from "@/components/share/qr-code-modal";
+import { QRCodeButton } from "@/components/share/qr-code-button";
+import { SocialShare } from "@/components/share/social-share";
 import type { FileMetadata } from "@/types/api";
 
 const isImageFile = (file: FileMetadata): boolean =>
@@ -64,10 +68,13 @@ export default function SharePage() {
   const [downloadAllProgress, setDownloadAllProgress] = useState(0);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const [dialogMediaLoaded, setDialogMediaLoaded] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
 
   const loadFiles = useCallback(async () => {
     try {
-      const response = await fetch(`/api/share/${shareId}/files`);
+      const response = await fetch(`/api/share/${shareId}/files`, {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         throw new Error("Failed to load files");
@@ -90,6 +97,7 @@ export default function SharePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -135,6 +143,7 @@ export default function SharePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
+        credentials: 'include',
       });
 
       if (response.status === 401) {
@@ -160,7 +169,9 @@ export default function SharePage() {
       setDownloadingFileId(file.id);
       setDownloadProgress(0);
 
-      const response = await fetch(`/api/share/${shareId}/download/${file.id}`);
+      const response = await fetch(`/api/share/${shareId}/download/${file.id}`, {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error("Failed to get download URL");
 
       const { downloadUrl } = await response.json();
@@ -401,9 +412,9 @@ export default function SharePage() {
             </div>
           )}
 
-          {/* Download All Button */}
-          {files.length > 1 && (
-            <div className="mt-6">
+          {/* Download All Button and Share Options */}
+          <div className="mt-6 flex items-center justify-center gap-3">
+            {files.length > 1 && (
               <Button
                 onClick={handleDownloadAll}
                 disabled={isDownloadingAll}
@@ -421,8 +432,10 @@ export default function SharePage() {
                   </>
                 )}
               </Button>
-            </div>
-          )}
+            )}
+            <QRCodeButton onClick={() => setShowQRCode(true)} />
+            <SocialShare shareLink={shareId} />
+          </div>
         </div>
 
         {/* File Grid */}
@@ -540,9 +553,20 @@ export default function SharePage() {
                       {file.filename}
                     </p>
                     <div className="flex items-center justify-between text-sm mb-3">
-                      <span style={{ color: "var(--color-text-tertiary)" }}>
-                        {formatBytes(file.size)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span style={{ color: "var(--color-text-tertiary)" }}>
+                          {formatBytes(file.size)}
+                        </span>
+                        {file.downloadCount !== undefined && file.downloadCount > 0 && (
+                          <span 
+                            className="text-xs flex items-center gap-1"
+                            style={{ color: "var(--color-text-tertiary)" }}
+                          >
+                            <FiDownload className="w-3 h-3" />
+                            {file.downloadCount}
+                          </span>
+                        )}
+                      </div>
                       <Badge variant="secondary">
                         {file.mimeType.split("/")[1]?.toUpperCase() ||
                           file.mimeType.toUpperCase()}
@@ -673,6 +697,13 @@ export default function SharePage() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* QR Code Modal */}
+        <QRCodeModal
+          isOpen={showQRCode}
+          onClose={() => setShowQRCode(false)}
+          shareLink={shareId}
+        />
       </div>
     </div>
   );

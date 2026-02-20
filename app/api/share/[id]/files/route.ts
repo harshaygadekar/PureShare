@@ -1,6 +1,7 @@
 /**
  * API Route: GET /api/share/[id]/files
  * Returns all files for a share with presigned URLs
+ * Enforces password protection via cookie verification
  */
 
 import { NextRequest } from 'next/server';
@@ -12,9 +13,20 @@ import {
   badRequestResponse,
   notFoundResponse,
   goneResponse,
+  unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response';
 import type { GetFilesResponse, FileMetadata } from '@/types/api';
+
+function getShareAccessCookieName(shareLink: string): string {
+  return `share_access_${shareLink}`;
+}
+
+function isShareAccessVerified(request: NextRequest, shareLink: string): boolean {
+  const cookieName = getShareAccessCookieName(shareLink);
+  const cookie = request.cookies.get(cookieName);
+  return cookie?.value === 'verified';
+}
 
 export async function GET(
   request: NextRequest,
@@ -31,7 +43,7 @@ export async function GET(
     // Get share from database
     const { data: share, error: shareError } = await supabaseAdmin
       .from('shares')
-      .select('id, expires_at, file_count')
+      .select('id, expires_at, file_count, password_hash')
       .eq('share_link', shareLink)
       .single();
 
@@ -45,10 +57,18 @@ export async function GET(
       return goneResponse('Share has expired');
     }
 
+    // Check password protection if required
+    const requiresPassword = !!share.password_hash;
+    if (requiresPassword) {
+      if (!isShareAccessVerified(request, shareLink)) {
+        return unauthorizedResponse('Password required');
+      }
+    }
+
     // Get all files for this share
     const { data: files, error: filesError } = await supabaseAdmin
       .from('files')
-      .select('id, filename, size, mime_type, s3_key, uploaded_at')
+      .select('id, filename, size, mime_type, s3_key, uploaded_at, download_count')
       .eq('share_id', share.id)
       .order('uploaded_at', { ascending: false });
 
@@ -69,6 +89,7 @@ export async function GET(
           mimeType: file.mime_type,
           uploadedAt: file.uploaded_at,
           previewUrl,
+          downloadCount: file.download_count || 0,
         };
       })
     );

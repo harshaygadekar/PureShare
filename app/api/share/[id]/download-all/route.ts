@@ -1,6 +1,7 @@
 /**
  * API Route: GET /api/share/[id]/download-all
  * Streams all files in a share as a ZIP archive
+ * Enforces password protection via cookie verification
  */
 
 import { NextRequest } from 'next/server';
@@ -13,10 +14,21 @@ import {
   badRequestResponse,
   notFoundResponse,
   goneResponse,
+  unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/utils/api-response';
 import archiver from 'archiver';
 import { AWS_CONFIG } from '@/config/constants';
+
+function getShareAccessCookieName(shareLink: string): string {
+  return `share_access_${shareLink}`;
+}
+
+function isShareAccessVerified(request: NextRequest, shareLink: string): boolean {
+  const cookieName = getShareAccessCookieName(shareLink);
+  const cookie = request.cookies.get(cookieName);
+  return cookie?.value === 'verified';
+}
 
 export async function GET(
   request: NextRequest,
@@ -33,7 +45,7 @@ export async function GET(
     // Get share from database
     const { data: share, error: shareError } = await supabaseAdmin
       .from('shares')
-      .select('id, expires_at')
+      .select('id, expires_at, password_hash')
       .eq('share_link', shareLink)
       .single();
 
@@ -44,6 +56,14 @@ export async function GET(
     // Check if expired
     if (new Date(share.expires_at) < new Date()) {
       return goneResponse('Share has expired');
+    }
+
+    // Check password protection if required
+    const requiresPassword = !!share.password_hash;
+    if (requiresPassword) {
+      if (!isShareAccessVerified(request, shareLink)) {
+        return unauthorizedResponse('Password required');
+      }
     }
 
     // Get all files for this share
