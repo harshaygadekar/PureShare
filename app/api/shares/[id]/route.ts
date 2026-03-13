@@ -9,6 +9,8 @@ import { supabaseAdmin } from "@/lib/db/supabase";
 import { resolveDatabaseUserId } from "@/lib/db/user-resolution";
 import { hashPassword } from "@/lib/security/password";
 import { deleteFiles } from "@/lib/storage/s3";
+import { SHARE_CONFIG } from "@/config/constants";
+import { updateShareSchema } from "@/lib/validations/share";
 import {
   successResponse,
   unauthorizedResponse,
@@ -35,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   // Verify share ownership
   const { data: share, error: fetchError } = await supabaseAdmin
     .from("shares")
-    .select("id, user_id, expires_at")
+    .select("id, user_id, expires_at, expiration_profile")
     .eq("id", id)
     .single();
 
@@ -49,25 +51,58 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   try {
     const body = await request.json();
+    const validation = updateShareSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse(validation.error.issues[0].message);
+    }
+
+    const payload = validation.data;
     const updates: Record<string, unknown> = {};
 
     // Extend expiration (in hours)
-    if (typeof body.extendHours === "number" && body.extendHours > 0) {
+    if (typeof payload.extendHours === "number") {
+      const allowedOptions =
+        share.expiration_profile === "video"
+          ? SHARE_CONFIG.videoExpirationOptionsHours
+          : SHARE_CONFIG.standardExpirationOptionsHours;
+
+      if (!allowedOptions.includes(payload.extendHours)) {
+        return badRequestResponse(
+          `Invalid expiration extension for ${share.expiration_profile} shares`,
+        );
+      }
+
+      const now = new Date();
       const currentExpiry = new Date(share.expires_at);
-      currentExpiry.setHours(currentExpiry.getHours() + body.extendHours);
-      updates.expires_at = currentExpiry.toISOString();
+      const extensionBase = currentExpiry > now ? currentExpiry : now;
+      const nextExpiry = new Date(extensionBase);
+      nextExpiry.setHours(nextExpiry.getHours() + payload.extendHours);
+
+      const maxAllowedExpiry = new Date(now);
+      maxAllowedExpiry.setHours(
+        maxAllowedExpiry.getHours() + SHARE_CONFIG.maxExpirationDays * 24,
+      );
+
+      if (nextExpiry > maxAllowedExpiry) {
+        return badRequestResponse(
+          `Expiration cannot exceed ${SHARE_CONFIG.maxExpirationDays} days from now`,
+        );
+      }
+
+      updates.expires_at = nextExpiry.toISOString();
     }
 
     // Update password (null to remove, string to set)
-    if (body.password !== undefined) {
-      updates.password_hash = body.password
-        ? await hashPassword(body.password)
+    if (payload.password !== undefined) {
+      updates.password_hash = payload.password
+        ? await hashPassword(payload.password)
         : null;
     }
 
     // Update title
-    if (typeof body.title === "string") {
-      updates.title = body.title.trim() || null;
+    if (payload.title !== undefined) {
+      updates.title = payload.title;
     }
 
     if (Object.keys(updates).length === 0) {

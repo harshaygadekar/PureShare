@@ -11,12 +11,16 @@ import { FiLock, FiZap, FiClock, FiShield, FiLink, FiEye, FiDownload, FiImage, F
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FiArrowRight } from 'react-icons/fi';
+import { FILE_CONFIG, SHARE_CONFIG } from '@/config/constants';
+
+const maxImageMb = Math.round(FILE_CONFIG.maxImageFileSize / 1024 / 1024);
+const maxExpirationDays = Math.max(...SHARE_CONFIG.standardExpirationOptionsHours) / 24;
 
 const features = [
   {
     icon: FiLock,
-    title: 'End-to-End Encryption',
-    description: 'Your files are encrypted before upload. Only recipients with the link can access them.',
+    title: 'Controlled Access',
+    description: 'Use expiring links, signed file access, and optional passwords to limit who can download.',
   },
   {
     icon: FiZap,
@@ -26,7 +30,7 @@ const features = [
   {
     icon: FiClock,
     title: 'Auto-Expiring Links',
-    description: 'Set custom expiration times. Links automatically become invalid after the time period.',
+    description: `Choose from the current expiration options, up to ${maxExpirationDays} days.`,
   },
   {
     icon: FiShield,
@@ -49,7 +53,7 @@ const additionalFeatures = [
   {
     icon: FiImage,
     title: 'Image Previews',
-    description: 'View images directly in the browser before downloading.',
+    description: `Preview images in the browser before downloading, with support up to ${maxImageMb}MB per image.`,
   },
   {
     icon: FiDownload,
@@ -64,7 +68,7 @@ const additionalFeatures = [
   {
     icon: FiCloud,
     title: 'Cloud Storage',
-    description: 'Files stored securely in AWS S3 with redundancy.',
+    description: 'Files are stored in managed cloud storage behind signed URLs.',
   },
 ];
 
@@ -113,7 +117,7 @@ export default function FeaturesPage() {
               Features
             </h1>
             <p className="text-lg text-gray-600">
-              Everything you need to share files securely and effortlessly.
+              Everything you need to share supported files with practical safeguards and simple recipient access.
             </p>
           </motion.div>
         </Container>

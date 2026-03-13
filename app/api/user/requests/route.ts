@@ -3,13 +3,17 @@
  * Get all file requests for the authenticated user
  */
 
-import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/db/supabase';
 import { resolveDatabaseUserId } from '@/lib/db/user-resolution';
 import { successResponse, unauthorizedResponse } from '@/lib/utils/api-response';
 
-export async function GET(request: NextRequest) {
+interface RequestUploadCountRow {
+  request_id: string;
+  uploaded_files_count: number | string | null;
+}
+
+export async function GET() {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
@@ -33,20 +37,27 @@ export async function GET(request: NextRequest) {
       return successResponse({ requests: [] });
     }
 
-    // Get file counts for each request
-    const requestsWithCounts = await Promise.all(
-      (requests || []).map(async (req) => {
-        const { count } = await supabaseAdmin
-          .from('request_files')
-          .select('*', { count: 'exact', head: true })
-          .eq('request_id', req.id);
-
-        return {
-          ...req,
-          uploadedFilesCount: count || 0,
-        };
-      })
+    const { data: uploadCounts, error: countError } = await supabaseAdmin.rpc(
+      'get_user_request_upload_counts',
+      { target_user_id: dbUserId },
     );
+
+    if (countError) {
+      console.error('Error fetching request upload counts:', countError);
+      return successResponse({ requests: [] });
+    }
+
+    const countMap = new Map<string, number>(
+      ((uploadCounts || []) as RequestUploadCountRow[]).map((row) => [
+        row.request_id,
+        Number(row.uploaded_files_count || 0),
+      ]),
+    );
+
+    const requestsWithCounts = (requests || []).map((req) => ({
+      ...req,
+      uploadedFilesCount: countMap.get(req.id) || 0,
+    }));
 
     return successResponse({ requests: requestsWithCounts });
   } catch (error) {

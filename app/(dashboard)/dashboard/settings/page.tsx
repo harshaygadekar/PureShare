@@ -208,8 +208,9 @@ export default async function SettingsPage() {
                     Privacy & Security
                 </h3>
                 <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                    Your files are encrypted and automatically deleted after expiration.
-                    We do not store or analyze the content of your shared files.
+                    PureShare uses signed storage access, optional passwords, and expiring links
+                    to limit access to shared files. Dashboard analytics record share activity
+                    for owners, but not the private contents of uploaded files.
                 </p>
             </div>
         </div>

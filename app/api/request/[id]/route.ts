@@ -49,7 +49,8 @@ export async function GET(
     const { count: uploadedFilesCount } = await supabaseAdmin
       .from('request_files')
       .select('*', { count: 'exact', head: true })
-      .eq('request_id', fileRequest.id);
+      .eq('request_id', fileRequest.id)
+      .eq('upload_status', 'completed');
 
     return successResponse({
       id: fileRequest.id,

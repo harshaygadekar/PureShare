@@ -15,6 +15,24 @@ import {
   unauthorizedResponse,
 } from '@/lib/utils/api-response';
 
+interface ShareAnalyticsOverviewRow {
+  total_views: number | string | null;
+  unique_visitors: number | string | null;
+  total_downloads: number | string | null;
+}
+
+interface ShareFileDownloadRow {
+  id: string;
+  filename: string;
+  download_count: number | string | null;
+}
+
+interface ShareTimelineRow {
+  date: string;
+  views: number | string | null;
+  downloads: number | string | null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -36,6 +54,13 @@ export async function GET(
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to) : null;
+
+    if ((from && Number.isNaN(fromDate?.getTime())) || (to && Number.isNaN(toDate?.getTime()))) {
+      return badRequestResponse('Invalid analytics date filter');
+    }
+
     if (!isValidShareLink(shareLink)) {
       return badRequestResponse('Invalid share link format');
     }
@@ -56,86 +81,48 @@ export async function GET(
       return unauthorizedResponse('Not authorized to view this share');
     }
 
-    // Build date filter
-    let dateFilter = {};
-    if (from || to) {
-      dateFilter = {
-        ...(from && { created_at: { gte: from } }),
-        ...(to && { created_at: { lte: to } }),
-      };
+    const [overviewResult, filesResult, timelineResult] = await Promise.all([
+      supabaseAdmin.rpc('get_share_analytics_overview', {
+        target_share_id: share.id,
+        from_ts: fromDate ? fromDate.toISOString() : null,
+        to_ts: toDate ? toDate.toISOString() : null,
+      }),
+      supabaseAdmin.rpc('get_share_file_download_counts', {
+        target_share_id: share.id,
+        from_ts: fromDate ? fromDate.toISOString() : null,
+        to_ts: toDate ? toDate.toISOString() : null,
+      }),
+      supabaseAdmin.rpc('get_share_analytics_timeline', {
+        target_share_id: share.id,
+        from_ts: fromDate ? fromDate.toISOString() : null,
+        to_ts: toDate ? toDate.toISOString() : null,
+      }),
+    ]);
+
+    if (overviewResult.error || filesResult.error || timelineResult.error) {
+      console.error('Error fetching share analytics:', {
+        overview: overviewResult.error,
+        files: filesResult.error,
+        timeline: timelineResult.error,
+      });
+      return badRequestResponse('Failed to fetch analytics');
     }
 
-    // Get total views
-    const { count: totalViews } = await supabaseAdmin
-      .from('share_analytics')
-      .select('*', { count: 'exact', head: true })
-      .eq('share_id', share.id)
-      .eq('event_type', 'view')
-      .then((result) => ({ count: result.count || 0 }));
+    const overview = Array.isArray(overviewResult.data)
+      ? (overviewResult.data[0] as ShareAnalyticsOverviewRow | undefined)
+      : (overviewResult.data as ShareAnalyticsOverviewRow | null);
 
-    // Get unique visitors (by IP hash)
-    const { data: uniqueVisitors } = await supabaseAdmin
-      .from('share_analytics')
-      .select('ip_hash')
-      .eq('share_id', share.id)
-      .neq('ip_hash', '');
-
-    const uniqueVisitorCount = new Set(uniqueVisitors?.map((v) => v.ip_hash)).size;
-
-    // Get total downloads
-    const { count: totalDownloads } = await supabaseAdmin
-      .from('share_analytics')
-      .select('*', { count: 'exact', head: true })
-      .eq('share_id', share.id)
-      .eq('event_type', 'download_file');
-
-    // Get downloads per file
-    const { data: downloadsPerFile } = await supabaseAdmin
-      .from('share_analytics')
-      .select('file_id, event_type')
-      .eq('share_id', share.id)
-      .eq('event_type', 'download_file');
-
-    // Aggregate downloads per file
-    const fileDownloadCounts: Record<string, number> = {};
-    downloadsPerFile?.forEach((d) => {
-      if (d.file_id) {
-        fileDownloadCounts[d.file_id] = (fileDownloadCounts[d.file_id] || 0) + 1;
-      }
-    });
-
-    // Get file details for download counts
-    const { data: files } = await supabaseAdmin
-      .from('files')
-      .select('id, filename, download_count')
-      .eq('share_id', share.id);
-
-    const filesWithDownloads = files?.map((file) => ({
+    const filesWithDownloads = ((filesResult.data || []) as ShareFileDownloadRow[]).map((file) => ({
       id: file.id,
       filename: file.filename,
-      downloadCount: file.download_count || 0,
-    })) || [];
+      downloadCount: Number(file.download_count || 0),
+    }));
 
-    // Get timeline data (daily counts)
-    const { data: timelineData } = await supabaseAdmin
-      .from('share_analytics')
-      .select('event_type, created_at')
-      .eq('share_id', share.id)
-      .order('created_at', { ascending: true });
-
-    // Aggregate by date
-    const timeline: Record<string, { views: number; downloads: number }> = {};
-    timelineData?.forEach((event) => {
-      const date = new Date(event.created_at).toISOString().split('T')[0];
-      if (!timeline[date]) {
-        timeline[date] = { views: 0, downloads: 0 };
-      }
-      if (event.event_type === 'view') {
-        timeline[date].views++;
-      } else if (event.event_type === 'download_file') {
-        timeline[date].downloads++;
-      }
-    });
+    const timeline = ((timelineResult.data || []) as ShareTimelineRow[]).map((row) => ({
+      date: row.date,
+      views: Number(row.views || 0),
+      downloads: Number(row.downloads || 0),
+    }));
 
     return successResponse({
       share: {
@@ -144,15 +131,12 @@ export async function GET(
         createdAt: share.created_at,
       },
       overview: {
-        totalViews: totalViews || 0,
-        uniqueVisitors: uniqueVisitorCount,
-        totalDownloads: totalDownloads || 0,
+        totalViews: Number(overview?.total_views || 0),
+        uniqueVisitors: Number(overview?.unique_visitors || 0),
+        totalDownloads: Number(overview?.total_downloads || 0),
       },
       files: filesWithDownloads,
-      timeline: Object.entries(timeline).map(([date, data]) => ({
-        date,
-        ...data,
-      })),
+      timeline,
     });
   } catch (error) {
     console.error('Unexpected error in get analytics:', error);

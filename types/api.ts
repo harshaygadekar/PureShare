@@ -23,7 +23,7 @@ export interface UploadFileResponse {
   fileId: string;
   filename: string;
   size: number;
-  previewUrl: string;
+  uploadUrl: string;
 }
 
 export interface VerifyShareRequest {

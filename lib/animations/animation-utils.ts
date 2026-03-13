@@ -146,7 +146,7 @@ export const fastStagger: Variants = {
 // REDUCED MOTION VARIANTS
 // Returns static variants when reduced motion is preferred
 // ========================================
-export const getReducedMotionVariants = (variants: Variants): Variants => {
+export const getReducedMotionVariants = (): Variants => {
     return {
         hidden: { opacity: 0 },
         visible: { opacity: 1 },

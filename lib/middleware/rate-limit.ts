@@ -7,71 +7,54 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Initialize Redis client (will use UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN from env)
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
+const redis = isRedisConfigured()
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    })
+  : null;
+
+function createLimiter(
+  prefix: string,
+  count: number,
+  window: `${number} ${'s' | 'm' | 'h' | 'd'}`,
+): Ratelimit | null {
+  if (!redis) {
+    return null;
+  }
+
+  return new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(count, window),
+    analytics: true,
+    prefix,
+  });
+}
 
 /**
  * Rate limiters for different endpoints
  */
 export const rateLimiters = {
   // Anonymous uploads: 5 per hour per IP
-  anonymousUpload: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '1 h'),
-    analytics: true,
-    prefix: 'ratelimit:anonymous-upload',
-  }),
+  anonymousUpload: createLimiter('ratelimit:anonymous-upload', 5, '1 h'),
 
   // Authenticated uploads: 50 per hour per user
-  authenticatedUpload: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(50, '1 h'),
-    analytics: true,
-    prefix: 'ratelimit:auth-upload',
-  }),
+  authenticatedUpload: createLimiter('ratelimit:auth-upload', 50, '1 h'),
 
   // Password attempts: 5 per 15 minutes per share
-  passwordAttempt: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '15 m'),
-    analytics: true,
-    prefix: 'ratelimit:password',
-  }),
+  passwordAttempt: createLimiter('ratelimit:password', 5, '15 m'),
 
   // Login attempts: 5 per hour per IP
-  login: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '1 h'),
-    analytics: true,
-    prefix: 'ratelimit:login',
-  }),
+  login: createLimiter('ratelimit:login', 5, '1 h'),
 
   // Signup attempts: 3 per day per IP
-  signup: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(3, '24 h'),
-    analytics: true,
-    prefix: 'ratelimit:signup',
-  }),
+  signup: createLimiter('ratelimit:signup', 3, '24 h'),
 
   // API general: 100 per minute per IP
-  api: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(100, '1 m'),
-    analytics: true,
-    prefix: 'ratelimit:api',
-  }),
+  api: createLimiter('ratelimit:api', 100, '1 m'),
 
   // File downloads: 50 per hour per IP
-  download: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(50, '1 h'),
-    analytics: true,
-    prefix: 'ratelimit:download',
-  }),
+  download: createLimiter('ratelimit:download', 50, '1 h'),
 };
 
 /**
@@ -93,10 +76,13 @@ export function getRateLimitIdentifier(request: NextRequest, userId?: string): s
  * Apply rate limit and return appropriate response if exceeded
  */
 export async function applyRateLimit(
-  limiter: Ratelimit,
+  limiter: Ratelimit | null,
   identifier: string,
-  request: NextRequest
 ): Promise<NextResponse | null> {
+  if (!limiter) {
+    return null;
+  }
+
   try {
     const { success, limit, reset, remaining } = await limiter.limit(identifier);
 
@@ -135,7 +121,7 @@ export async function applyRateLimit(
  */
 export function withRateLimit(
   handler: (request: NextRequest) => Promise<NextResponse>,
-  limiter: Ratelimit,
+  limiter: Ratelimit | null,
   getUserId?: (request: NextRequest) => Promise<string | undefined>
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
@@ -146,7 +132,7 @@ export function withRateLimit(
     const identifier = getRateLimitIdentifier(request, userId);
 
     // Apply rate limit
-    const rateLimitResponse = await applyRateLimit(limiter, identifier, request);
+    const rateLimitResponse = await applyRateLimit(limiter, identifier);
 
     if (rateLimitResponse) {
       return rateLimitResponse;

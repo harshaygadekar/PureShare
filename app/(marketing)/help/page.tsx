@@ -5,6 +5,11 @@
 
 import Link from 'next/link';
 import { ChevronDown, Search, MessageCircle, Mail } from 'lucide-react';
+import { FILE_CONFIG, SHARE_CONFIG } from '@/config/constants';
+
+const maxImageMb = Math.round(FILE_CONFIG.maxImageFileSize / 1024 / 1024);
+const maxVideoMb = Math.round(FILE_CONFIG.maxVideoFileSize / 1024 / 1024);
+const maxExpirationDays = Math.max(...SHARE_CONFIG.standardExpirationOptionsHours) / 24;
 
 const faqCategories = [
   {
@@ -12,19 +17,19 @@ const faqCategories = [
     questions: [
       {
         question: 'How does PureShare work?',
-        answer: 'PureShare lets you upload files and share them with a temporary link. The file is automatically deleted after the expiration time you choose. No account required - just upload, share, and forget.',
+        answer: 'PureShare lets you upload supported files and share them with a temporary link. Links expire on the schedule you choose, and recipients do not need an account to download.',
       },
       {
         question: 'Is there a file size limit?',
-        answer: 'Yes, the maximum file size is 10GB per upload. This ensures fast uploads and reliable sharing for most common file types.',
+        answer: `Yes. Current limits support image files up to ${maxImageMb}MB and supported video files up to ${maxVideoMb}MB per file.`,
       },
       {
         question: 'How long do files stay available?',
-        answer: 'You can choose an expiration time from 1 hour to 7 days. After the expiration time passes, the file is automatically and permanently deleted.',
+        answer: `You can choose from the currently available expiration options, up to ${maxExpirationDays} days. Once a link expires, downloads stop working and cleanup runs afterward.`,
       },
       {
         question: 'Do I need an account?',
-        answer: 'No account is required! Simply upload your file, set an expiration time, and share the link. No registration, no tracking.',
+        answer: 'Recipients do not need an account. You can also create shares anonymously, while signed-in users get dashboard and analytics features.',
       },
     ],
   },
@@ -33,7 +38,7 @@ const faqCategories = [
     questions: [
       {
         question: 'How do I share a file?',
-        answer: 'Upload your file on our homepage, choose an expiration time and download limit, then copy the unique share link. Send it to anyone - they can download the file without needing an account.',
+        answer: 'Upload your file, choose an expiration time, optionally add a password, then copy the share link. Recipients can download without creating an account.',
       },
       {
         question: 'Can I password protect shares?',
@@ -41,11 +46,11 @@ const faqCategories = [
       },
       {
         question: 'How do download limits work?',
-        answer: 'You can set a maximum number of downloads (1-100) for each share. Once that limit is reached, the share becomes invalid even if the expiration time hasn\'t passed.',
+        answer: 'PureShare currently expires links by time rather than by a download cap. Owners can still review download activity for shares linked to their account.',
       },
       {
         question: 'Can I delete a share before it expires?',
-        answer: 'Currently, shares are automatically deleted after expiration or when the download limit is reached. Manual early deletion is not available in this version.',
+        answer: 'Yes for signed-in owners. Shares connected to your dashboard can be deleted manually before they expire.',
       },
     ],
   },
@@ -54,15 +59,15 @@ const faqCategories = [
     questions: [
       {
         question: 'Are files encrypted?',
-        answer: 'Yes, all files are encrypted during transfer using industry-standard TLS encryption. Files are stored securely and can only be accessed via the unique share link.',
+        answer: 'Traffic to PureShare uses TLS in transit, and file access is gated with signed URLs plus optional password protection on supported shares.',
       },
       {
         question: 'What happens to files after expiry?',
-        answer: 'Once a share expires, the file is permanently and securely deleted from our servers. There is no way to recover expired files.',
+        answer: 'Once a share expires, the link stops working immediately. File cleanup happens afterward and expired shares should be treated as unavailable.',
       },
       {
         question: 'Do you store any personal data?',
-        answer: 'We don\'t require accounts or collect personal information. We only store the files you upload temporarily. No tracking, no cookies, no user profiles.',
+        answer: 'Recipients do not need an account, but signed-in users can create dashboard-managed shares. We also store operational and share analytics data needed to run the service and show owners activity on their links.',
       },
     ],
   },
@@ -71,11 +76,11 @@ const faqCategories = [
     questions: [
       {
         question: 'Share link not working',
-        answer: 'The link may have expired or reached its download limit. Check if the expiration time has passed or if the file has been downloaded the maximum number of times.',
+        answer: 'The link may have expired, been deleted by the owner, or require a password before access. Verify the URL and any password shared with you.',
       },
       {
         question: 'File upload failed',
-        answer: 'Check that your file is under 10GB and try a different browser. If the problem persists, contact us with details about the file you were trying to upload.',
+        answer: `Check that your file matches the supported image or video limits (${maxImageMb}MB images, ${maxVideoMb}MB video) and try again. If the problem persists, contact support with the file type and size.`,
       },
       {
         question: 'Page not loading',

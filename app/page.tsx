@@ -72,12 +72,17 @@ export default function HomePage() {
               lineHeight: 1.6,
             }}
           >
-            Experience seamless, <strong style={{ fontWeight: 600 }}>end-to-end encrypted</strong> transfers that automatically vanish after download.
+            Share photos with expiring links, optional password protection, and fast browser-to-cloud delivery.
           </p>
 
           {/* CTA Button - proper width, not full */}
-          <Link href="/upload" className="pointer-events-auto">
-            <motion.button
+          <motion.div
+            className="pointer-events-auto"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link
+              href="/upload"
               className="flex items-center justify-center gap-3 px-10 py-4 rounded-full text-white text-lg transition-all duration-300"
               style={{
                 backgroundColor: 'var(--color-interactive)',
@@ -85,16 +90,11 @@ export default function HomePage() {
                 fontWeight: 600,
                 letterSpacing: '-0.01em',
               }}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: '0 8px 32px rgba(0, 122, 255, 0.35)',
-              }}
-              whileTap={{ scale: 0.95 }}
             >
               Share images now
               <FiArrowRight className="h-5 w-5" />
-            </motion.button>
-          </Link>
+            </Link>
+          </motion.div>
         </motion.div>
       </main>
     </>

@@ -7,6 +7,11 @@
 
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/db/supabase';
+import {
+  applyRateLimit,
+  getRateLimitIdentifier,
+  rateLimiters,
+} from '@/lib/middleware/rate-limit';
 import { getDownloadPresignedUrl } from '@/lib/storage/s3';
 import { isValidShareLink } from '@/lib/security/share-link';
 import { sendDownloadNotification } from '@/lib/email/notification-service';
@@ -61,7 +66,8 @@ async function trackFileDownload(
 async function sendDownloadNotificationIfEnabled(
   shareId: string,
   shareLink: string,
-  filename: string
+  filename: string,
+  totalDownloads: number,
 ): Promise<void> {
   try {
     // Check if notifications are enabled for this share
@@ -87,21 +93,13 @@ async function sendDownloadNotificationIfEnabled(
       return;
     }
 
-    // Get updated download count
-    const { data: file } = await supabaseAdmin
-      .from('files')
-      .select('download_count')
-      .eq('share_id', shareId)
-      .eq('filename', filename)
-      .single();
-
     // Send notification
     await sendDownloadNotification({
       to: user.email,
       shareLink,
       filename,
       downloadTime: new Date().toLocaleString(),
-      totalDownloads: (file?.download_count || 0),
+      totalDownloads,
     });
   } catch (error) {
     console.error('Error sending download notification:', error);
@@ -115,6 +113,15 @@ export async function GET(
 ) {
   try {
     const { id: shareLink, fileId } = await params;
+
+    const rateLimitResponse = await applyRateLimit(
+      rateLimiters.download,
+      `${getRateLimitIdentifier(request)}:share:${shareLink}`,
+    );
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     // Validate share link format
     if (!isValidShareLink(shareLink)) {
@@ -148,22 +155,29 @@ export async function GET(
     // Get file from database
     const { data: file, error: fileError } = await supabaseAdmin
       .from('files')
-      .select('id, filename, s3_key, share_id, download_count')
+      .select('id, filename, s3_key, share_id, upload_status')
       .eq('id', fileId)
       .eq('share_id', share.id)
+      .eq('upload_status', 'completed')
       .single();
 
     if (fileError || !file) {
       return notFoundResponse('File not found');
     }
 
-    // Increment download count atomically
-    const { data: updatedFile } = await supabaseAdmin
-      .from('files')
-      .update({ download_count: (file.download_count || 0) + 1 })
-      .eq('id', file.id)
-      .select('download_count')
-      .single();
+    const { data: updatedCount, error: incrementError } = await supabaseAdmin.rpc(
+      'increment_file_download_count',
+      { target_file_id: file.id },
+    );
+
+    if (incrementError) {
+      console.error('Error incrementing download count:', incrementError);
+      return serverErrorResponse('Failed to update download count');
+    }
+
+    const totalDownloads = Array.isArray(updatedCount)
+      ? updatedCount[0]
+      : updatedCount;
 
     // Track download event (async, don't block response)
     trackFileDownload(share.id, file.id, request).catch((err) =>
@@ -172,13 +186,20 @@ export async function GET(
 
     // Send download notification if enabled (async, don't wait)
     if (share.user_id) {
-      sendDownloadNotificationIfEnabled(share.id, shareLink, file.filename).catch(
-        (err) => console.error('Notification error:', err)
-      );
+      sendDownloadNotificationIfEnabled(
+        share.id,
+        shareLink,
+        file.filename,
+        typeof totalDownloads === 'number' ? totalDownloads : 0,
+      ).catch((err) => console.error('Notification error:', err));
     }
 
     // Generate presigned download URL (1 hour expiry)
-    const downloadUrl = await getDownloadPresignedUrl(file.s3_key, 3600);
+    const downloadUrl = await getDownloadPresignedUrl(
+      file.s3_key,
+      3600,
+      file.filename,
+    );
 
     const response: DownloadUrlResponse = {
       downloadUrl,

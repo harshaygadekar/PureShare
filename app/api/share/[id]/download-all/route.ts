@@ -5,8 +5,13 @@
  */
 
 import { NextRequest } from 'next/server';
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import { supabaseAdmin } from '@/lib/db/supabase';
+import {
+  applyRateLimit,
+  getRateLimitIdentifier,
+  rateLimiters,
+} from '@/lib/middleware/rate-limit';
 import { s3Client } from '@/lib/storage/s3';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { isValidShareLink } from '@/lib/security/share-link';
@@ -18,7 +23,9 @@ import {
   serverErrorResponse,
 } from '@/lib/utils/api-response';
 import archiver from 'archiver';
-import { AWS_CONFIG } from '@/config/constants';
+import { getEnvConfig } from '@/lib/utils/env-validation';
+
+const env = getEnvConfig();
 
 function getShareAccessCookieName(shareLink: string): string {
   return `share_access_${shareLink}`;
@@ -36,6 +43,15 @@ export async function GET(
 ) {
   try {
     const { id: shareLink } = await params;
+
+    const rateLimitResponse = await applyRateLimit(
+      rateLimiters.download,
+      `${getRateLimitIdentifier(request)}:share:${shareLink}:zip`,
+    );
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     // Validate share link format
     if (!isValidShareLink(shareLink)) {
@@ -71,10 +87,32 @@ export async function GET(
       .from('files')
       .select('id, filename, s3_key')
       .eq('share_id', share.id)
+      .eq('upload_status', 'completed')
       .order('uploaded_at', { ascending: true });
 
     if (filesError || !files || files.length === 0) {
       return notFoundResponse('No files found in this share');
+    }
+
+    const shouldValidateOnly = request.nextUrl.searchParams.get('validate') === '1';
+
+    if (shouldValidateOnly) {
+      for (const file of files) {
+        try {
+          await s3Client.send(
+            new GetObjectCommand({
+              Bucket: env.AWS_S3_BUCKET_NAME,
+              Key: file.s3_key,
+              Range: 'bytes=0-0',
+            }),
+          );
+        } catch (error) {
+          console.error(`ZIP validation failed for ${file.filename}:`, error);
+          return serverErrorResponse(`Unable to prepare ZIP: missing file ${file.filename}`);
+        }
+      }
+
+      return new Response(null, { status: 204 });
     }
 
     // Create a ReadableStream for the ZIP
@@ -105,25 +143,17 @@ export async function GET(
 
         // Add each file to the archive
         for (const file of files) {
-          try {
-            // Get file from S3
-            const command = new GetObjectCommand({
-              Bucket: AWS_CONFIG.bucketName,
-              Key: file.s3_key,
-            });
+          const command = new GetObjectCommand({
+            Bucket: env.AWS_S3_BUCKET_NAME,
+            Key: file.s3_key,
+          });
 
-            const response = await s3Client.send(command);
-
-            if (response.Body) {
-              // AWS SDK v3 Body can be converted to Buffer using transformToByteArray
-              const bodyBytes = await response.Body.transformToByteArray();
-              const buffer = Buffer.from(bodyBytes);
-              archive.append(buffer, { name: file.filename });
-            }
-          } catch (error) {
-            console.error(`Error adding file ${file.filename}:`, error);
-            // Continue with other files instead of failing completely
+          const response = await s3Client.send(command);
+          if (!response.Body) {
+            throw new Error(`Missing body stream for ${file.filename}`);
           }
+
+          archive.append(response.Body as Readable, { name: file.filename });
         }
 
         // Finalize the archive

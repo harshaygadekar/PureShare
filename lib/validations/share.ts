@@ -110,6 +110,32 @@ export const uploadFileSchema = z
     }
   });
 
+export const finalizeUploadedFileSchema = z.object({
+  shareLink: z.string().length(12),
+  fileId: z.string().uuid(),
+  status: z.enum(["completed", "failed"]),
+});
+
+export const updateShareSchema = z.object({
+  extendHours: z.number().int().positive().optional(),
+  password: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((val) => (val === "" ? null : val))
+    .refine((val) => val === undefined || val === null || val.length >= 4, {
+      message: "Password must be at least 4 characters",
+    })
+    .refine((val) => val === undefined || val === null || val.length <= 100, {
+      message: "Password must be at most 100 characters",
+    }),
+  title: z
+    .union([z.string().max(255), z.null()])
+    .optional()
+    .transform((val) => (typeof val === "string" ? val.trim() || null : val)),
+});
+
 export type CreateShareInput = z.infer<typeof createShareSchema>;
 export type VerifyShareInput = z.infer<typeof verifyShareSchema>;
 export type UploadFileInput = z.infer<typeof uploadFileSchema>;
+export type FinalizeUploadedFileInput = z.infer<typeof finalizeUploadedFileSchema>;
+export type UpdateShareInput = z.infer<typeof updateShareSchema>;

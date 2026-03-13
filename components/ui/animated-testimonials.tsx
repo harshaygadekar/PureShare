@@ -3,7 +3,7 @@
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type Testimonial = {
@@ -23,11 +23,30 @@ export const AnimatedTestimonials = ({
   className?: string;
 }) => {
   const [active, setActive] = useState(0);
-  const [rotations, setRotations] = useState<Record<number, { initial: number; exit: number; animate: number }>>({});
 
-  const handleNext = () => {
+  const rotations = useMemo(() => {
+    const seededRotation = (seed: number) => {
+      const raw = Math.sin(seed * 999.91) * 43758.5453;
+      return Math.floor((raw - Math.floor(raw)) * 21) - 10;
+    };
+
+    return testimonials.reduce<Record<number, { initial: number; exit: number; animate: number }>>(
+      (acc, testimonial, index) => {
+        const seedBase = testimonial.src.length + index * 17;
+        acc[index] = {
+          initial: seededRotation(seedBase + 1),
+          exit: seededRotation(seedBase + 2),
+          animate: seededRotation(seedBase + 3),
+        };
+        return acc;
+      },
+      {},
+    );
+  }, [testimonials]);
+
+  const handleNext = useCallback(() => {
     setActive((prev) => (prev + 1) % testimonials.length);
-  };
+  }, [testimonials.length]);
 
   const handlePrev = () => {
     setActive((prev) => (prev - 1 + testimonials.length) % testimonials.length);
@@ -37,26 +56,12 @@ export const AnimatedTestimonials = ({
     return index === active;
   };
 
-  // Generate random rotations once on mount to avoid calling Math.random() during render
-  useEffect(() => {
-    const newRotations: Record<number, { initial: number; exit: number; animate: number }> = {};
-    testimonials.forEach((_, index) => {
-      newRotations[index] = {
-        initial: Math.floor(Math.random() * 21) - 10,
-        exit: Math.floor(Math.random() * 21) - 10,
-        animate: Math.floor(Math.random() * 21) - 10,
-      };
-    });
-    setRotations(newRotations);
-  }, [testimonials.length]);
-
   useEffect(() => {
     if (autoplay) {
       const interval = setInterval(handleNext, 5000);
       return () => clearInterval(interval);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoplay]);
+  }, [autoplay, handleNext]);
 
   return (
     <div className={cn("max-w-sm md:max-w-4xl mx-auto px-4 md:px-8 lg:px-12 py-20", className)}>

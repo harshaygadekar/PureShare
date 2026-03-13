@@ -4,14 +4,17 @@
 
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { AWS_CONFIG } from '@/config/constants';
+import { randomUUID } from 'crypto';
+import { getEnvConfig } from '@/lib/utils/env-validation';
+
+const env = getEnvConfig();
 
 // Initialize S3 client
 export const s3Client = new S3Client({
-  region: AWS_CONFIG.region,
+  region: env.AWS_REGION,
   credentials: {
-    accessKeyId: AWS_CONFIG.accessKeyId,
-    secretAccessKey: AWS_CONFIG.secretAccessKey,
+    accessKeyId: env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
@@ -24,7 +27,7 @@ export async function getUploadPresignedUrl(
   expiresIn: number = 3600
 ): Promise<string> {
   const command = new PutObjectCommand({
-    Bucket: AWS_CONFIG.bucketName,
+    Bucket: env.AWS_S3_BUCKET_NAME,
     Key: key,
     ContentType: contentType,
   });
@@ -37,11 +40,17 @@ export async function getUploadPresignedUrl(
  */
 export async function getDownloadPresignedUrl(
   key: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
+  downloadFilename?: string,
 ): Promise<string> {
   const command = new GetObjectCommand({
-    Bucket: AWS_CONFIG.bucketName,
+    Bucket: env.AWS_S3_BUCKET_NAME,
     Key: key,
+    ...(downloadFilename
+      ? {
+          ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(downloadFilename)}`,
+        }
+      : {}),
   });
 
   return getSignedUrl(s3Client, command, { expiresIn });
@@ -52,7 +61,7 @@ export async function getDownloadPresignedUrl(
  */
 export async function deleteFile(key: string): Promise<void> {
   const command = new DeleteObjectCommand({
-    Bucket: AWS_CONFIG.bucketName,
+    Bucket: env.AWS_S3_BUCKET_NAME,
     Key: key,
   });
 
@@ -66,7 +75,7 @@ export async function deleteFiles(keys: string[]): Promise<void> {
   if (keys.length === 0) return;
 
   const command = new DeleteObjectsCommand({
-    Bucket: AWS_CONFIG.bucketName,
+    Bucket: env.AWS_S3_BUCKET_NAME,
     Delete: {
       Objects: keys.map(key => ({ Key: key })),
     },
@@ -81,7 +90,7 @@ export async function deleteFiles(keys: string[]): Promise<void> {
 export function generateS3Key(shareId: string, filename: string): string {
   // Sanitize filename to prevent issues
   const sanitized = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-  return `uploads/${shareId}/${sanitized}`;
+  return `uploads/${shareId}/${randomUUID()}-${sanitized}`;
 }
 
 /**

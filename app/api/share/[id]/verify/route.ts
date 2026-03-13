@@ -6,10 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/db/supabase';
+import {
+  applyRateLimit,
+  getRateLimitIdentifier,
+  rateLimiters,
+} from '@/lib/middleware/rate-limit';
 import { verifyPassword } from '@/lib/security/password';
 import { isValidShareLink } from '@/lib/security/share-link';
 import {
-  successResponse,
   badRequestResponse,
   notFoundResponse,
   unauthorizedResponse,
@@ -50,6 +54,15 @@ export async function POST(
 ) {
   try {
     const { id: shareLink } = await params;
+
+    const rateLimitResponse = await applyRateLimit(
+      rateLimiters.passwordAttempt,
+      `${getRateLimitIdentifier(request)}:share:${shareLink}`,
+    );
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     // Validate share link format
     if (!isValidShareLink(shareLink)) {

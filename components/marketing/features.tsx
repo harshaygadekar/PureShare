@@ -14,8 +14,8 @@ import { motion } from 'framer-motion';
 const features = [
   {
     icon: FiLock,
-    title: 'End-to-End Encryption',
-    description: 'Your files are encrypted before upload. Only recipients with the link can access them.',
+    title: 'Controlled Access',
+    description: 'Share through expiring links, signed file access, and optional password protection.',
   },
   {
     icon: FiZap,
@@ -121,7 +121,7 @@ export function Features() {
               color: 'var(--color-text-secondary)',
             }}
           >
-            Built with security and simplicity in mind. Share files without compromising on privacy or convenience.
+            Built for straightforward file delivery with practical safeguards and simple recipient access.
           </p>
         </motion.div>
 

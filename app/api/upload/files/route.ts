@@ -1,12 +1,20 @@
 /**
  * API Route: POST /api/upload/files
- * Handles file uploads to S3 and stores metadata in database
+ * Registers pending share file uploads and finalizes them after S3 upload
  */
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/db/supabase";
+import {
+  applyRateLimit,
+  getRateLimitIdentifier,
+  rateLimiters,
+} from "@/lib/middleware/rate-limit";
 import { generateS3Key, getUploadPresignedUrl } from "@/lib/storage/s3";
-import { uploadFileSchema } from "@/lib/validations/share";
+import {
+  uploadFileSchema,
+  finalizeUploadedFileSchema,
+} from "@/lib/validations/share";
 import {
   successResponse,
   badRequestResponse,
@@ -19,6 +27,15 @@ import { FILE_CONFIG } from "@/config/constants";
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await applyRateLimit(
+      rateLimiters.anonymousUpload,
+      getRateLimitIdentifier(request),
+    );
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const body = await request.json();
 
     // Validate input
@@ -32,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Check if share exists and is not expired
     const { data: share, error: shareError } = await supabaseAdmin
       .from("shares")
-      .select("id, expires_at, file_count")
+      .select("id, expires_at")
       .eq("share_link", shareLink)
       .single();
 
@@ -45,8 +62,18 @@ export async function POST(request: NextRequest) {
       return goneResponse("Share has expired");
     }
 
-    // Check file count limit
-    if (share.file_count >= FILE_CONFIG.maxFilesPerShare) {
+    const { count: registeredFiles, error: countError } = await supabaseAdmin
+      .from("files")
+      .select("id", { count: "exact", head: true })
+      .eq("share_id", share.id)
+      .neq("upload_status", "failed");
+
+    if (countError) {
+      console.error("Error counting registered files:", countError);
+      return serverErrorResponse("Failed to validate share capacity");
+    }
+
+    if ((registeredFiles || 0) >= FILE_CONFIG.maxFilesPerShare) {
       return badRequestResponse(
         `Maximum ${FILE_CONFIG.maxFilesPerShare} files per share`,
       );
@@ -67,6 +94,7 @@ export async function POST(request: NextRequest) {
         size,
         mime_type: mimeType,
         s3_key: s3Key,
+        upload_status: "pending",
       })
       .select("id, filename, size")
       .single();
@@ -76,40 +104,104 @@ export async function POST(request: NextRequest) {
       return serverErrorResponse("Failed to create file record");
     }
 
-    const updates: Record<string, unknown> = {
-      file_count: share.file_count + 1,
-    };
-
-    if (mimeType.startsWith("image/")) {
-      updates.has_image = true;
-    }
-
-    if (mimeType.startsWith("video/")) {
-      updates.has_video = true;
-    }
-
-    // Update share metadata
-    const { error: updateError } = await supabaseAdmin
-      .from("shares")
-      .update(updates)
-      .eq("id", share.id);
-
-    if (updateError) {
-      console.error("Error updating share metadata:", updateError);
-      await supabaseAdmin.from("files").delete().eq("id", file.id);
-      return serverErrorResponse("Failed to update share metadata");
-    }
-
     const response: UploadFileResponse = {
       fileId: file.id,
       filename: file.filename,
       size: file.size,
-      previewUrl: uploadUrl,
+      uploadUrl,
     };
 
     return successResponse(response, 201);
   } catch (error) {
     console.error("Unexpected error in upload files:", error);
+    return serverErrorResponse("An unexpected error occurred");
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const rateLimitResponse = await applyRateLimit(
+      rateLimiters.anonymousUpload,
+      getRateLimitIdentifier(request),
+    );
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    const body = await request.json();
+    const validation = finalizeUploadedFileSchema.safeParse(body);
+
+    if (!validation.success) {
+      return badRequestResponse(validation.error.issues[0].message);
+    }
+
+    const { shareLink, fileId, status } = validation.data;
+
+    const { data: share, error: shareError } = await supabaseAdmin
+      .from("shares")
+      .select("id, expires_at")
+      .eq("share_link", shareLink)
+      .single();
+
+    if (shareError || !share) {
+      return notFoundResponse("Share not found");
+    }
+
+    if (new Date(share.expires_at) < new Date()) {
+      return goneResponse("Share has expired");
+    }
+
+    const { data: file, error: fileError } = await supabaseAdmin
+      .from("files")
+      .select("id, share_id, upload_status")
+      .eq("id", fileId)
+      .eq("share_id", share.id)
+      .single();
+
+    if (fileError || !file) {
+      return notFoundResponse("File not found");
+    }
+
+    if (status === "failed") {
+      if (file.upload_status === "completed") {
+        return badRequestResponse("Completed uploads cannot be marked as failed");
+      }
+
+      await supabaseAdmin
+        .from("files")
+        .update({ upload_status: "failed" })
+        .eq("id", file.id)
+        .eq("upload_status", "pending");
+
+      return successResponse({ fileId: file.id, status: "failed" });
+    }
+
+    if (file.upload_status === "failed") {
+      return badRequestResponse("Failed uploads cannot be finalized");
+    }
+
+    const { data: finalizedRows, error: finalizeError } = await supabaseAdmin.rpc(
+      "finalize_share_file_upload",
+      { target_file_id: file.id },
+    );
+
+    if (finalizeError) {
+      console.error("Error finalizing share file upload:", finalizeError);
+      return serverErrorResponse("Failed to finalize file upload");
+    }
+
+    const finalized = Array.isArray(finalizedRows)
+      ? finalizedRows[0]
+      : finalizedRows;
+
+    return successResponse({
+      fileId: file.id,
+      status: finalized?.upload_status || "completed",
+      fileCount: finalized?.file_count,
+    });
+  } catch (error) {
+    console.error("Unexpected error finalizing upload:", error);
     return serverErrorResponse("An unexpected error occurred");
   }
 }

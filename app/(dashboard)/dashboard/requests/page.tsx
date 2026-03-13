@@ -287,7 +287,7 @@ function RequestCard({ request }: { request: FileRequest }) {
               try {
                 await navigator.clipboard.writeText(requestUrl);
                 toast.success("Link copied!");
-              } catch (err) {
+              } catch {
                 // Fallback for some browsers
                 const textArea = document.createElement('textarea');
                 textArea.value = requestUrl;

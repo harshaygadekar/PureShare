@@ -12,7 +12,6 @@ interface NavItem {
  */
 export const PillBase: React.FC = () => {
   const [activeSection, setActiveSection] = useState('home')
-  const [expanded, setExpanded] = useState(false)
   const [hovering, setHovering] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -29,23 +28,18 @@ export const PillBase: React.FC = () => {
   // Spring animations for smooth motion
   const pillWidth = useSpring(140, { stiffness: 220, damping: 25, mass: 1 })
   const pillShift = useSpring(0, { stiffness: 220, damping: 25, mass: 1 })
+  const expanded = hovering
 
   // No scroll detection - purely click-based navigation
 
-  // Handle hover expansion
-  // Note: setExpanded is intentionally called in response to hovering changes
   useEffect(() => {
     if (hovering) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setExpanded(true)
       pillWidth.set(580)
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current)
       }
     } else {
       hoverTimeoutRef.current = setTimeout(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setExpanded(false)
         pillWidth.set(140)
       }, 600)
     }
@@ -55,7 +49,6 @@ export const PillBase: React.FC = () => {
         clearTimeout(hoverTimeoutRef.current)
       }
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [hovering, pillWidth])
 
   const handleMouseEnter = () => {

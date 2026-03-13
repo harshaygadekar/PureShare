@@ -1,6 +1,5 @@
 "use client";
 
-import { FiMail } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 
 interface QRCodeButtonProps {

@@ -1,69 +1,129 @@
-# PureShare 🚀
+# PureShare
 
-**Temporary file sharing with ephemeral storage** - A secure, time-limited file sharing platform built with Next.js, AWS S3, and Supabase.
+PureShare is a Next.js App Router application for temporary file sharing and file requests.
+It supports browser-to-S3 uploads, expiring share links, optional password protection,
+owner analytics, QR/social sharing, and an authenticated dashboard for managing shares
+and requests.
 
-## ✨ Features
+## What it does
 
-- **Drag & Drop Upload** - Intuitive file upload interface
-- 🔗 **Share Links** - Generate unique, short share links
-- 🔒 **Password Protection** - Optional password protection for shares
-- ⏰ **Auto-Expiration** - Files automatically deleted after expiration
-- 🖼️ **Image Gallery** - Beautiful grid view for shared images
-- 📱 **Responsive Design** - Works on desktop and mobile
-- 🎨 **Modern UI** - Built with shadcn/ui and Tailwind CSS
-- ⚡ **Fast & Secure** - Server-side rendered with Next.js 16.0.1
+- Create share links for uploaded files
+- Upload files directly from the browser to S3 with presigned URLs
+- Protect shares with optional passwords
+- Expire links automatically based on configured time windows
+- Preview images and video before download
+- Download individual files or all files as a ZIP
+- Create file request links so other people can upload to you
+- View owner analytics and dashboard activity for authenticated shares
 
-## 🛠️ Tech Stack
+## Current security model
 
-- **Framework**: Next.js 16.0.1 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui
-- **Database**: Supabase (PostgreSQL)
-- **Storage**: AWS S3
-- **File Uploads**: react-dropzone
-- **Icons**: react-icons
-- **Validation**: Zod
-- **Authentication**: bcryptjs
+PureShare uses practical access controls, not client-side end-to-end encryption.
+
+- TLS protects browser and API traffic
+- S3 objects are accessed through time-limited signed URLs
+- Shares can require a password before access
+- Dashboard and owner APIs are protected with Clerk authentication
+- Rate limiting is available when Upstash Redis is configured
+- Environment validation fails fast for required runtime secrets
+
+## Default limits
+
+These defaults come from `config/constants.ts` and can be overridden with environment variables.
+
+- Image uploads: `100MB` per file
+- Video uploads: `500MB` per file
+- Files per share: `50`
+- Standard expiration options: `24`, `48`, `72`, `168` hours
+- Video expiration options: `24`, `48`, `72`, `168` hours
+
+## Tech stack
+
+- Framework: Next.js 16 App Router
+- Language: TypeScript
+- Auth: Clerk
+- Database: Supabase Postgres
+- Storage: AWS S3
+- Validation: Zod
+- UI: Tailwind CSS v4, Radix UI, shadcn-style components
+- Email: Resend
+- Rate limiting: Upstash Redis
+
+## Main flows
+
+### Share upload flow
+
+1. Client calls `POST /api/upload/create`
+2. Client registers each file through `POST /api/upload/files`
+3. Browser uploads file bytes directly to S3 using the returned presigned URL
+4. Client finalizes the upload through `PATCH /api/upload/files`
+5. Recipients access the share through `/share/[id]`
+
+### File request flow
+
+1. Authenticated user creates a request through `POST /api/request/create`
+2. Recipient opens `/request/[id]`
+3. Client registers upload metadata through `POST /api/request/[id]/upload`
+4. Browser uploads directly to S3
+5. Client finalizes the upload through `PATCH /api/request/[id]/upload`
+
+### Download flow
+
+- Individual downloads use `GET /api/share/[id]/download/[fileId]`
+- ZIP downloads use `GET /api/share/[id]/download-all`
+- Owner analytics are exposed through `GET /api/shares/[id]/analytics`
+
+## Repository structure
+
+```text
+app/
+  (dashboard)/           Authenticated dashboard pages
+  (marketing)/           Public marketing, pricing, help, legal pages
+  api/                   Route handlers for upload, share, request, user, analytics
+  request/[id]/          Public file request upload page
+  share/[id]/            Public share view and download page
+  upload/                Share creation page
+
+components/
+  dashboard/            Dashboard UI
+  marketing/            Marketing sections
+  share/                Share actions and modals
+  shared/               Shared app components
+  ui/                   UI primitives and motion components
+
+lib/
+  db/                   Supabase clients and user resolution
+  downloads/            Client download helpers
+  email/                Notification templates and sending
+  middleware/           Rate limiting and security helpers
+  security/             Password and share-link helpers
+  storage/              S3 client and presigned URL utilities
+  validations/          Zod schemas
+
+supabase/migrations/    SQL migrations and RPC helpers
+config/constants.ts     Runtime defaults and limits
+```
 
 ## Prerequisites
 
-- Node.js 22.21.1 or higher
-- npm or yarn
-- AWS Account (for S3)
-- Supabase Account
-
-## 🚀 Getting Started
-
-### 1. Clone the repository
-
-```bash
-git clone <your-repo-url>
-cd pureshare
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-```
-
-### 3. Set up external services
-
-Follow the detailed setup guide in [SETUP.md](./SETUP.md) to configure:
+- Node.js 20+
+- npm
+- Supabase project
 - AWS S3 bucket
-- Supabase database
-- Environment variables
+- Clerk application
 
-### 4. Configure environment variables
+Optional but recommended:
 
-Copy `.env.example` to `.env.local` and fill in your credentials:
+- Upstash Redis for rate limiting
+- Resend for notification emails
 
-```bash
-cp .env.example .env.local
-```
+## Environment variables
 
-Required variables:
+Copy `.env.example` to `.env.local` and fill in the required values.
+
+Required runtime variables:
+
+- `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -71,119 +131,111 @@ Required variables:
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_S3_BUCKET_NAME`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
 
-### 5. Run the development server
+Optional runtime variables:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `RESEND_API_KEY`
+- `FROM_EMAIL`
+- `ALLOWED_ORIGINS`
+- `HEALTH_CHECK_TOKEN`
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure environment variables
+
+```bash
+cp .env.example .env.local
+```
+
+### 3. Apply database migrations
+
+Apply the SQL files in `supabase/migrations/` using your normal Supabase workflow.
+
+Important recent migrations:
+
+- `supabase/migrations/20260313_phase1_upload_finalization.sql`
+- `supabase/migrations/20260313_phase3_aggregates.sql`
+
+If you use the Supabase CLI, this is typically done with:
+
+```bash
+supabase db push
+```
+
+### 4. Start the app
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the application.
+Open `http://localhost:3000`.
 
-## Project Structure
+## Scripts
 
-```
-pureshare/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   ├── upload/        # Upload endpoints
-│   │   └── share/         # Share endpoints
-│   ├── share/[id]/        # Share viewing page
-│   └── page.tsx           # Home page (upload)
-├── components/
-│   ├── ui/                # shadcn/ui primitives
-│   ├── features/          # Feature components
-│   └── layouts/           # Layout components
-├── lib/
-│   ├── db/                # Database clients
-│   ├── storage/           # S3 utilities
-│   ├── auth/              # Authentication
-│   ├── validations/       # Zod schemas
-│   └── utils/             # Helper functions
-├── types/
-│   ├── api.ts             # API types
-│   └── database.ts        # Database types
-├── config/
-│   └── constants.ts       # App configuration
-└── docs_implementation_plan.txt  # 30-day roadmap
+```bash
+npm run dev
+npm run lint
+npm run build
+npm run start
 ```
 
-## Key Features Explained
+## Key routes
 
-### File Upload Flow
-1. User selects files via drag-and-drop or file picker
-2. Creates a share with optional password and expiration time
-3. Files are uploaded directly to AWS S3 using presigned URLs
-4. Metadata stored in Supabase database
-5. Unique share link generated and displayed
+Pages:
 
-### Share Viewing Flow
-1. User accesses share link
-2. Password verification if required
-3. Files displayed in responsive grid
-4. Click to preview in modal
-5. Download individual files
+- `/` - landing page
+- `/upload` - create a share
+- `/share/[id]` - view/download a share
+- `/request/[id]` - upload to a file request
+- `/dashboard` - owner dashboard
+- `/dashboard/shares` - owner shares
+- `/dashboard/requests` - owner file requests
+- `/dashboard/settings` - account/settings page
 
-### Auto-Expiration
-- Shares expire based on user-selected time (24h, 48h, 7 days, etc.)
-- S3 lifecycle policy automatically deletes old files
-- Database cleanup job (future: implement cron)
+API:
 
-## API Endpoints
+- `POST /api/upload/create`
+- `POST /api/upload/files`
+- `PATCH /api/upload/files`
+- `POST /api/request/create`
+- `POST /api/request/[id]/upload`
+- `PATCH /api/request/[id]/upload`
+- `POST /api/share/[id]/verify`
+- `GET /api/share/[id]/files`
+- `GET /api/share/[id]/download/[fileId]`
+- `GET /api/share/[id]/download-all`
+- `GET /api/user/shares`
+- `GET /api/user/requests`
+- `GET /api/user/stats`
+- `GET /api/shares/[id]/analytics`
 
-- `POST /api/upload/create` - Create new share
-- `POST /api/upload/files` - Upload file metadata
-- `POST /api/share/[id]/verify` - Verify share access
-- `GET /api/share/[id]/files` - Get all files in share
-- `GET /api/share/[id]/download/[fileId]` - Download file
+## Operational notes
 
-## ecurity Features
+- The health endpoint is `GET /api/health`
+- In production, health access requires either a valid Clerk session or `HEALTH_CHECK_TOKEN`
+- Upload finalization is tracked in the database; failed uploads are marked separately from completed uploads
+- ZIP generation is streamed server-side and validated before browser-triggered download
 
-- ✅ Password hashing with bcrypt
-- ✅ Presigned S3 URLs (time-limited)
-- ✅ Input validation with Zod
-- ✅ Private S3 bucket (no public access)
-- ✅ Row Level Security in Supabase
-- ✅ Environment variables for secrets
+## Development status
 
-## Deployment
+Current local validation status:
 
-### Vercel (Recommended)
+- `npm run lint` passes
+- `npm run build` passes
 
-1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables
-4. Deploy
+There is currently no automated test script in `package.json`, so integration and end-to-end coverage are still a recommended next step.
 
-### Environment Variables for Production
+## Notes on docs
 
-Update `NEXT_PUBLIC_APP_URL` to your production domain:
-```
-NEXT_PUBLIC_APP_URL=https://your-domain.com
-```
-
-
-### Next Steps 🔜
-- Implement cleanup cron job
-- Add bulk download (ZIP)
-- Share statistics and analytics
-- Video file support
-- Mobile app
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-MIT License - feel free to use this project for personal or commercial purposes.
-
-## Acknowledgments
-
-- Built with [Next.js](https://nextjs.org)
-- UI components from [shadcn/ui](https://ui.shadcn.com)
-- Icons from [react-icons](https://react-icons.github.io/react-icons/)
-
----
-
-**Note**: This is an MVP built as part of a 30-day implementation plan. See [SETUP.md](./SETUP.md) for detailed setup instructions.
+- Older project notes may still reference JWT auth, client-side encryption, 5GB or 10GB upload limits, or download caps
+- The current source of truth is the codebase, especially `config/constants.ts`, `lib/utils/env-validation.ts`, and the route handlers in `app/api/`

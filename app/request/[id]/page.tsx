@@ -75,6 +75,11 @@ export default function RequestUploadPage() {
 
     const file = files[0];
 
+    if (requestDetails.requireEmail && !email.trim()) {
+      toast.error("Please enter your email before uploading");
+      return;
+    }
+
     // Check file size
     if (file.size > requestDetails.maxFileSize) {
       toast.error(
@@ -87,16 +92,15 @@ export default function RequestUploadPage() {
     setUploadProgress(0);
 
     try {
-      // Step 1: Get upload URL
-      const formData = new FormData();
-      formData.append("file", file);
-      if (requestDetails.requireEmail) {
-        formData.append("email", email);
-      }
-
       const uploadResponse = await fetch(`/api/request/${requestId}/upload`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          size: file.size,
+          mimeType: file.type,
+          email: requestDetails.requireEmail ? email.trim() : undefined,
+        }),
       });
 
       if (!uploadResponse.ok) {
@@ -104,7 +108,7 @@ export default function RequestUploadPage() {
         throw new Error(errorData.message || "Failed to get upload URL");
       }
 
-      const { uploadUrl } = await uploadResponse.json();
+      const { uploadUrl, fileId } = await uploadResponse.json();
 
       // Step 2: Upload to S3
       const s3Response = await fetch(uploadUrl, {
@@ -116,7 +120,22 @@ export default function RequestUploadPage() {
       });
 
       if (!s3Response.ok) {
+        await fetch(`/api/request/${requestId}/upload`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileId, status: "failed" }),
+        }).catch(() => undefined);
         throw new Error("Failed to upload file");
+      }
+
+      const finalizeResponse = await fetch(`/api/request/${requestId}/upload`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId, status: "completed" }),
+      });
+
+      if (!finalizeResponse.ok) {
+        throw new Error("Failed to finalize uploaded file");
       }
 
       setUploadProgress(100);

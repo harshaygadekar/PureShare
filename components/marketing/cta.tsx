@@ -74,7 +74,7 @@ export function CTA() {
               className="mt-8 text-sm"
               style={{ color: 'var(--color-text-tertiary)' }}
             >
-              No credit card • Free forever • Unlimited shares
+              No credit card • Free today • Recipient-friendly sharing
             </p>
           </div>
         </motion.div>

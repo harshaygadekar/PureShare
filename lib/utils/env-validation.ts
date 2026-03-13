@@ -121,17 +121,27 @@ const envSchema = z.object({
   // Monitoring (optional)
   SENTRY_DSN: z.string().url().optional().or(z.literal("")),
   POSTHOG_KEY: z.string().optional(),
+
+  // Operational access (optional)
+  HEALTH_CHECK_TOKEN: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
+
+let cachedEnv: Env | null = null;
 
 /**
  * Validate environment variables
  * Call this at app startup
  */
 export function validateEnv(): Env {
+  if (cachedEnv) {
+    return cachedEnv;
+  }
+
   try {
     const env = envSchema.parse(process.env);
+    cachedEnv = env;
     return env;
   } catch (error) {
     if (error instanceof z.ZodError) {

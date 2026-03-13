@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiDownload, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -37,6 +37,26 @@ export function FilePreview({ file, files, shareId, onClose, onNavigate }: FileP
   const isImageFile = file?.mimeType.startsWith('image/');
 
   // Keyboard navigation
+  const handlePrevious = useCallback(() => {
+    if (hasPrevious && onNavigate) {
+      // Navigate to previous image file
+      const prevImageIndex = currentImageIndex - 1;
+      if (prevImageIndex >= 0) {
+        onNavigate(imageFiles[prevImageIndex]);
+      }
+    }
+  }, [currentImageIndex, hasPrevious, imageFiles, onNavigate]);
+
+  const handleNext = useCallback(() => {
+    if (hasNext && onNavigate) {
+      // Navigate to next image file
+      const nextImageIndex = currentImageIndex + 1;
+      if (nextImageIndex < imageFiles.length) {
+        onNavigate(imageFiles[nextImageIndex]);
+      }
+    }
+  }, [currentImageIndex, hasNext, imageFiles, onNavigate]);
+
   useEffect(() => {
     if (!file) return;
 
@@ -52,27 +72,7 @@ export function FilePreview({ file, files, shareId, onClose, onNavigate }: FileP
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [file, hasPrevious, hasNext]);
-
-  const handlePrevious = () => {
-    if (hasPrevious && onNavigate) {
-      // Navigate to previous image file
-      const prevImageIndex = currentImageIndex - 1;
-      if (prevImageIndex >= 0) {
-        onNavigate(imageFiles[prevImageIndex]);
-      }
-    }
-  };
-
-  const handleNext = () => {
-    if (hasNext && onNavigate) {
-      // Navigate to next image file
-      const nextImageIndex = currentImageIndex + 1;
-      if (nextImageIndex < imageFiles.length) {
-        onNavigate(imageFiles[nextImageIndex]);
-      }
-    }
-  };
+  }, [file, handleNext, handlePrevious, hasNext, hasPrevious, onClose]);
 
   const handleDownload = async () => {
     if (!file || isDownloading) return;
@@ -89,14 +89,14 @@ export function FilePreview({ file, files, shareId, onClose, onNavigate }: FileP
 
       const { downloadUrl } = await response.json();
 
-      // Download file with progress
+      // Trigger browser-managed download without buffering the file in memory
       await downloadFile(downloadUrl, file.filename, {
         onProgress: (progress) => {
           setDownloadProgress(progress.percentage);
         },
       });
 
-      toast.success(`Downloaded ${file.filename}`);
+      toast.success(`Download started for ${file.filename}`);
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download file');

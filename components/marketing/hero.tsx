@@ -101,8 +101,8 @@ export function Hero() {
               lineHeight: 'var(--leading-relaxed)',
             }}
           >
-            Upload, share, and track your files with end-to-end encryption.
-            No signup required. Links expire automatically.
+            Upload, share, and track files with expiring links, optional passwords,
+            and no recipient signup requirement.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -133,8 +133,8 @@ export function Hero() {
             className="mt-16 flex flex-wrap items-center justify-center gap-8"
           >
             {[
-              'End-to-end encrypted',
-              'Zero knowledge',
+              'Signed downloads',
+              'Optional passwords',
               'Auto-expiring links',
             ].map((item) => (
               <div

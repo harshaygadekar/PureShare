@@ -11,13 +11,18 @@ import { FiUpload, FiLink, FiShare2, FiArrowRight, FiHelpCircle } from 'react-ic
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
+import { FILE_CONFIG, SHARE_CONFIG } from '@/config/constants';
+
+const maxImageMb = Math.round(FILE_CONFIG.maxImageFileSize / 1024 / 1024);
+const maxVideoMb = Math.round(FILE_CONFIG.maxVideoFileSize / 1024 / 1024);
+const maxExpirationDays = Math.max(...SHARE_CONFIG.standardExpirationOptionsHours) / 24;
 
 const steps = [
   {
     number: '01',
     icon: FiUpload,
     title: 'Upload Your Files',
-    description: 'Drag and drop files or click to browse. Support for images, videos, and documents up to 5GB.',
+    description: `Drag and drop files or click to browse. Current support includes images up to ${maxImageMb}MB and videos up to ${maxVideoMb}MB.`,
   },
   {
     number: '02',
@@ -36,15 +41,15 @@ const steps = [
 const faqs = [
   {
     question: 'How long do files stay available?',
-    answer: 'You can set custom expiration times from 1 hour to 30 days. After expiration, files are automatically deleted.',
+    answer: `You can choose from the available expiration options, currently up to ${maxExpirationDays} days. After that, the link stops working and cleanup follows.`,
   },
   {
     question: 'What file types are supported?',
-    answer: 'All common file types are supported including images, videos, documents, PDFs, and archives.',
+    answer: 'PureShare currently supports configured image formats and common web video formats.',
   },
   {
     question: 'Is there a file size limit?',
-    answer: 'Each share can contain files up to 5GB total. There is no limit on the number of files per share.',
+    answer: `Per-file limits currently allow images up to ${maxImageMb}MB and videos up to ${maxVideoMb}MB, with up to 50 files per share.`,
   },
   {
     question: 'Do recipients need an account?',
@@ -52,7 +57,7 @@ const faqs = [
   },
   {
     question: 'How secure is my data?',
-    answer: 'Files are encrypted and stored securely in AWS S3. Optional password protection adds extra security.',
+    answer: 'PureShare uses TLS in transit, signed storage URLs, and optional password protection to reduce exposure.',
   },
   {
     question: 'Can I track who downloaded my files?',

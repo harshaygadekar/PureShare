@@ -5,6 +5,8 @@
 
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { FiDownload, FiFile, FiImage, FiFileText, FiVideo, FiMusic } from 'react-icons/fi';
@@ -58,14 +60,14 @@ export function FileCard({ file, shareId, onPreview }: FileCardProps) {
 
       const { downloadUrl } = await response.json();
 
-      // Download file with progress
+      // Trigger browser-managed download without buffering the file in memory
       await downloadFile(downloadUrl, file.filename, {
         onProgress: (progress) => {
           setDownloadProgress(progress.percentage);
         },
       });
 
-      toast.success(`Downloaded ${file.filename}`);
+      toast.success(`Download started for ${file.filename}`);
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download file');

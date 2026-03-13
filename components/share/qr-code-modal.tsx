@@ -1,7 +1,9 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState } from "react";
-import { FiX, FiCopy, FiCheck } from "react-icons/fi";
+import { FiCopy, FiCheck } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,20 +22,23 @@ interface QRCodeModalProps {
 
 export function QRCodeModal({ isOpen, onClose, shareLink }: QRCodeModalProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedFor, setGeneratedFor] = useState<string>("");
   const [copied, setCopied] = useState(false);
 
   const shareUrl = getShareUrl(shareLink);
 
   useEffect(() => {
-    if (isOpen && shareLink) {
-      setIsGenerating(true);
+    if (isOpen && shareLink && generatedFor !== shareUrl) {
       generateQRCodeDataUrl(shareUrl)
-        .then(setQrCodeUrl)
+        .then((url) => {
+          setQrCodeUrl(url);
+          setGeneratedFor(shareUrl);
+        })
         .catch(console.error)
-        .finally(() => setIsGenerating(false));
     }
-  }, [isOpen, shareLink, shareUrl]);
+  }, [generatedFor, isOpen, shareLink, shareUrl]);
+
+  const isGenerating = isOpen && !!shareLink && generatedFor !== shareUrl;
 
   const copyToClipboard = async () => {
     try {
@@ -57,7 +62,7 @@ export function QRCodeModal({ isOpen, onClose, shareLink }: QRCodeModalProps) {
             <div className="w-64 h-64 flex items-center justify-center bg-gray-100 rounded-lg">
               <div className="animate-pulse text-gray-400">Generating QR code...</div>
             </div>
-          ) : qrCodeUrl ? (
+          ) : qrCodeUrl && generatedFor === shareUrl ? (
             <div className="p-4 bg-white rounded-lg border">
               <img
                 src={qrCodeUrl}

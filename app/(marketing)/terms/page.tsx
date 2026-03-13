@@ -5,6 +5,11 @@
 
 import { Container } from '@/components/layout/container';
 import { Section } from '@/components/layout/section';
+import { FILE_CONFIG, SHARE_CONFIG } from '@/config/constants';
+
+const maxImageMb = Math.round(FILE_CONFIG.maxImageFileSize / 1024 / 1024);
+const maxVideoMb = Math.round(FILE_CONFIG.maxVideoFileSize / 1024 / 1024);
+const maxExpirationDays = Math.max(...SHARE_CONFIG.standardExpirationOptionsHours) / 24;
 
 export default function TermsPage() {
   return (
@@ -70,21 +75,22 @@ export default function TermsPage() {
                   <h3 className="mb-2 text-xl font-semibold text-foreground">
                     Storage Duration
                   </h3>
-                  <p className="leading-relaxed text-secondary">
-                    Files are stored for the duration specified when creating the share link
-                    (maximum 7 days). Files are automatically and permanently deleted after
-                    the expiration time.
-                  </p>
+                   <p className="leading-relaxed text-secondary">
+                     Files are stored for the duration specified when creating the share link
+                     (currently up to {maxExpirationDays} days). After a link expires, access
+                     stops and stored data may remain briefly while cleanup completes.
+                   </p>
                 </div>
 
                 <div>
                   <h3 className="mb-2 text-xl font-semibold text-foreground">
                     File Size Limits
                   </h3>
-                  <p className="leading-relaxed text-secondary">
-                    Free users can upload files up to 5GB per file. Premium users have
-                    increased limits. We reserve the right to modify these limits at any time.
-                  </p>
+                   <p className="leading-relaxed text-secondary">
+                     Current limits support image uploads up to {maxImageMb}MB per file and
+                     supported video uploads up to {maxVideoMb}MB per file. We may update
+                     these limits over time.
+                   </p>
                 </div>
 
                 <div>
@@ -127,12 +133,12 @@ export default function TermsPage() {
 
             <section>
               <h2 className="mb-4 text-3xl font-bold text-foreground">Disclaimer</h2>
-              <p className="leading-relaxed text-secondary">
-                The service is provided "as is" without warranties of any kind, either express
-                or implied. We do not warrant that the service will be uninterrupted, secure,
-                or error-free. We do not guarantee the accuracy or reliability of any content
-                shared through the service.
-              </p>
+               <p className="leading-relaxed text-secondary">
+                 The service is provided &quot;as is&quot; without warranties of any kind, either express
+                 or implied. We do not warrant that the service will be uninterrupted, secure,
+                 or error-free. We do not guarantee the accuracy or reliability of any content
+                 shared through the service.
+               </p>
             </section>
 
             <section>

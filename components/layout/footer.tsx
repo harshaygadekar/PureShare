@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { Logo } from '@/components/shared/logo';
-import { Github, Twitter, Linkedin, ArrowRight, Mail } from 'lucide-react';
+import { Github, Twitter, Linkedin, Mail } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -41,27 +41,18 @@ export function Footer() {
           <div className="col-span-2 lg:col-span-1">
             <Logo size="sm" />
             <p className="mt-4 text-sm text-secondary leading-relaxed">
-              Temporary file sharing that disappears. No accounts, no tracking.
+              Temporary file sharing with expiring links, optional passwords, and recipient-friendly downloads.
             </p>
-            {/* Newsletter Signup */}
             <div className="mt-6">
               <p className="text-xs font-medium text-primary uppercase tracking-wide mb-3">
-                Stay Updated
+                Need help?
               </p>
-              <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-3 py-2 text-sm bg-bg-primary border border-border rounded-md placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-interactive focus:border-transparent transition-all"
-                />
-                <button
-                  type="submit"
-                  className="p-2 bg-interactive text-white rounded-md hover:bg-interactive-hover transition-colors"
-                  aria-label="Subscribe"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
+              <div className="space-y-2 text-sm text-secondary">
+                <p>Questions about limits, privacy, or active shares?</p>
+                <Link href="/help" className="inline-flex items-center text-interactive hover:text-interactive-hover transition-colors">
+                  Visit the Help Center
+                </Link>
+              </div>
             </div>
           </div>
 

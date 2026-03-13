@@ -39,10 +39,10 @@ export default function PrivacyPage() {
                   <h3 className="mb-2 text-xl font-semibold text-foreground">
                     Files You Upload
                   </h3>
-                  <p className="leading-relaxed text-secondary">
-                    We store the files you upload temporarily for the duration of the share
-                    link validity. Files are encrypted at rest and automatically deleted
-                    when the share link expires.
+                 <p className="leading-relaxed text-secondary">
+                    We store uploaded files for the lifetime of the share or request you
+                    create. Access is controlled through signed URLs, link expiration, and
+                    optional password protection where enabled.
                   </p>
                 </div>
 
@@ -88,22 +88,21 @@ export default function PrivacyPage() {
                 We implement industry-standard security measures to protect your data:
               </p>
               <ul className="list-disc space-y-2 pl-6 text-secondary">
-                <li>End-to-end encryption for all file transfers</li>
-                <li>AES-256 encryption for data at rest</li>
-                <li>Regular security audits and penetration testing</li>
-                <li>Secure cloud infrastructure with 99.9% uptime</li>
-                <li>Automatic file deletion after expiration</li>
-                <li>No third-party access to your files</li>
+                <li>TLS protection for browser and API traffic</li>
+                <li>Time-limited signed URLs for storage access</li>
+                <li>Optional password protection for shared links</li>
+                <li>Access controls for authenticated dashboard features</li>
+                <li>Operational logging and owner-visible access analytics</li>
+                <li>Cleanup processes for expired or deleted shares</li>
               </ul>
             </section>
 
             <section>
               <h2 className="mb-4 text-3xl font-bold text-foreground">Data Retention</h2>
               <p className="leading-relaxed text-secondary">
-                Files are automatically deleted when share links expire. You can also
-                manually delete shares at any time through your dashboard. Account data
-                is retained until you request account deletion. We comply with all
-                applicable data retention laws and regulations.
+                Expired links stop serving files immediately. Stored files may remain briefly
+                while cleanup jobs complete, and authenticated owners can remove active shares
+                from the dashboard. Account data is retained until account deletion is requested.
               </p>
             </section>
 
@@ -143,7 +142,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="mb-4 text-3xl font-bold text-foreground">Children's Privacy</h2>
+              <h2 className="mb-4 text-3xl font-bold text-foreground">Children&apos;s Privacy</h2>
               <p className="leading-relaxed text-secondary">
                 Our service is not intended for children under 13 years of age. We do
                 not knowingly collect personal information from children. If you believe
@@ -156,7 +155,7 @@ export default function PrivacyPage() {
               <p className="leading-relaxed text-secondary">
                 We may update this privacy policy from time to time. We will notify you
                 of any changes by posting the new privacy policy on this page and updating
-                the "Last updated" date. You are advised to review this policy periodically
+                the &quot;Last updated&quot; date. You are advised to review this policy periodically
                 for any changes.
               </p>
             </section>

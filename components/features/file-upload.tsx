@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 /**
  * File Upload Component
  * Clean drag and drop with Apple-inspired design

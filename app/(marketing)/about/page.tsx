@@ -43,18 +43,18 @@ export default function AboutPage() {
             <div className="prose prose-invert mx-auto max-w-3xl">
               <div className="space-y-6 text-lg leading-relaxed text-secondary">
                 <p>
-                  PureShare was born from a simple observation: file sharing shouldn't
-                  be complicated, and it definitely shouldn't compromise your privacy.
+                  PureShare was born from a simple observation: file sharing shouldn&apos;t
+                  be complicated, and it definitely shouldn&apos;t compromise your privacy.
                   Too many platforms prioritize convenience over security, or make
                   security so complex that it becomes unusable.
                 </p>
 
                 <p>
-                  We set out to build something different—a platform that combines
-                  military-grade security with Apple-level simplicity. A place where
-                  you can share files without creating yet another account, where your
-                  data is encrypted by default, and where links automatically expire
-                  to protect your privacy.
+                  We set out to build something different-a platform that combines
+                  practical safeguards with Apple-level simplicity. A place where
+                  you can share files without creating yet another account, add
+                  password protection when needed, and let links expire on a schedule
+                  that fits the moment.
                 </p>
 
                 <p>
@@ -110,9 +110,9 @@ export default function AboutPage() {
               Join Our Mission
             </h2>
             <p className="mb-8 text-lg text-secondary">
-              We're always looking for talented individuals who share our passion
+              We&apos;re always looking for talented individuals who share our passion
               for privacy and great user experience. If that sounds like you,
-              we'd love to hear from you.
+              we&apos;d love to hear from you.
             </p>
             <a
               href="mailto:careers@pureshare.com"

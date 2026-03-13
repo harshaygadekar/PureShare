@@ -13,31 +13,31 @@ import { motion } from 'framer-motion';
 const securityFeatures = [
   {
     icon: FiShield,
-    title: 'Military-Grade Encryption',
-    description: 'AES-256 encryption ensures your files are protected during transit and at rest.',
+    title: 'Signed Access',
+    description: 'Files are served through time-limited signed URLs instead of permanent public links.',
   },
   {
     icon: FiEyeOff,
-    title: 'Zero-Knowledge Architecture',
-    description: 'We never see your files. All encryption happens client-side before upload.',
+    title: 'Optional Passwords',
+    description: 'Protect sensitive shares with an extra password step before recipients can access files.',
   },
   {
     icon: FiClock,
-    title: 'Automatic Deletion',
-    description: 'Files are permanently deleted from our servers when links expire.',
+    title: 'Expiring Links',
+    description: 'Share access stops when the chosen link lifetime ends, with cleanup following afterward.',
   },
   {
     icon: FiServer,
     title: 'Secure Infrastructure',
-    description: 'Hosted on enterprise-grade cloud infrastructure with 99.9% uptime.',
+    description: 'Uploads and downloads run on managed cloud storage and authenticated application APIs.',
   },
 ];
 
 const trustIndicators = [
-  { icon: FiCheckCircle, text: 'GDPR Compliant' },
-  { icon: FiCheckCircle, text: 'SOC 2 Certified' },
-  { icon: FiCheckCircle, text: 'ISO 27001' },
-  { icon: FiCheckCircle, text: 'Regular Security Audits' },
+  { icon: FiCheckCircle, text: 'TLS in transit' },
+  { icon: FiCheckCircle, text: 'Signed storage URLs' },
+  { icon: FiCheckCircle, text: 'Optional passwords' },
+  { icon: FiCheckCircle, text: 'Expiring links' },
 ];
 
 const fadeInUp = {
@@ -89,8 +89,8 @@ export function Security() {
                 color: 'var(--color-text-secondary)',
               }}
             >
-              Your privacy and security are our top priorities. We've built PureShare
-              with enterprise-grade security features to ensure your files stay protected.
+              Your privacy and security are our top priorities. We&apos;ve built PureShare
+              around practical controls that help limit who can access shared files and for how long.
             </p>
 
             {/* Trust indicators */}

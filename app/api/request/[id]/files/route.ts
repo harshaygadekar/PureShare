@@ -57,6 +57,7 @@ export async function GET(
       .from('request_files')
       .select('*')
       .eq('request_id', fileRequest.id)
+      .eq('upload_status', 'completed')
       .order('uploaded_at', { ascending: false });
 
     if (filesError) {

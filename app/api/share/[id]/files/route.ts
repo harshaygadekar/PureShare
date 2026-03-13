@@ -70,6 +70,7 @@ export async function GET(
       .from('files')
       .select('id, filename, size, mime_type, s3_key, uploaded_at, download_count')
       .eq('share_id', share.id)
+      .eq('upload_status', 'completed')
       .order('uploaded_at', { ascending: false });
 
     if (filesError) {

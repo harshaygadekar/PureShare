@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 /**
  * Share Viewing Page
  * Clean Apple-inspired design for viewing and downloading shared files
@@ -26,7 +28,6 @@ import {
   FiAlertCircle,
   FiArrowRight,
   FiVideo,
-  FiShare2,
 } from "react-icons/fi";
 import { toast } from "sonner";
 import {
@@ -180,7 +181,7 @@ export default function SharePage() {
         onProgress: (progress) => setDownloadProgress(progress.percentage),
       });
 
-      toast.success(`Downloaded ${file.filename}`);
+      toast.success(`Download started for ${file.filename}`);
     } catch {
       toast.error("Failed to download file");
     } finally {
@@ -198,7 +199,7 @@ export default function SharePage() {
         onProgress: (progress) => setDownloadAllProgress(progress.percentage),
       });
 
-      toast.success("All files downloaded successfully!");
+      toast.success("ZIP download started");
     } catch {
       toast.error("Failed to download files");
     } finally {
@@ -470,10 +471,17 @@ export default function SharePage() {
                     border: "1px solid var(--color-border)",
                   }}
                 >
-                  <div
-                    className="relative h-48 cursor-pointer overflow-hidden"
+                  <button
+                    type="button"
+                    className="relative h-48 w-full overflow-hidden text-left disabled:cursor-default"
                     style={{ backgroundColor: "var(--color-bg-secondary)" }}
                     onClick={() => handlePreviewOpen(file)}
+                    disabled={!isImage && !isVideo}
+                    aria-label={
+                      isImage || isVideo
+                        ? `Preview ${file.filename}`
+                        : `${file.filename} preview not available`
+                    }
                   >
                     {isImage && (
                       <>
@@ -541,7 +549,7 @@ export default function SharePage() {
                         />
                       </div>
                     )}
-                  </div>
+                  </button>
 
                   {/* File Info */}
                   <div className="p-4">

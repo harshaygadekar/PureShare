@@ -122,6 +122,21 @@ export default function UploadPage() {
       const totalFiles = files.length;
       let uploadedFiles = 0;
 
+      const updateUploadStatus = async (
+        fileId: string,
+        status: "completed" | "failed",
+      ) => {
+        await fetch("/api/upload/files", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shareLink: link,
+            fileId,
+            status,
+          }),
+        });
+      };
+
       for (const file of files) {
         const registerResponse = await fetch("/api/upload/files", {
           method: "POST",
@@ -141,9 +156,9 @@ export default function UploadPage() {
           );
         }
 
-        const { previewUrl } = await registerResponse.json();
+        const { uploadUrl, fileId } = await registerResponse.json();
 
-        const uploadResponse = await fetch(previewUrl, {
+        const uploadResponse = await fetch(uploadUrl, {
           method: "PUT",
           body: file,
           headers: {
@@ -152,7 +167,22 @@ export default function UploadPage() {
         });
 
         if (!uploadResponse.ok) {
+          await updateUploadStatus(fileId, "failed").catch(() => undefined);
           throw new Error(`Failed to upload file ${file.name} to storage`);
+        }
+
+        const finalizeResponse = await fetch("/api/upload/files", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shareLink: link,
+            fileId,
+            status: "completed",
+          }),
+        });
+
+        if (!finalizeResponse.ok) {
+          throw new Error(`Failed to finalize file ${file.name}`);
         }
 
         uploadedFiles++;
@@ -559,9 +589,9 @@ export default function UploadPage() {
               {[
                 {
                   icon: FiShield,
-                  title: "End-to-End Encrypted",
+                  title: "Protected Sharing",
                   description:
-                    "Military-grade encryption protects your files from upload to download.",
+                    "Use expiring links, signed downloads, and optional passwords to control access.",
                 },
                 {
                   icon: FiZap,

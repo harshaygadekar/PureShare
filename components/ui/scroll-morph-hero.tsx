@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, useTransform, useSpring, useMotionValue } from "framer-motion";
 
@@ -14,8 +16,6 @@ export type AnimationPhase = "scatter" | "line" | "circle" | "bottom-strip";
 interface FlipCardProps {
     src: string;
     index: number;
-    total: number;
-    phase: AnimationPhase;
     target: { x: number; y: number; rotation: number; scale: number; opacity: number };
 }
 
@@ -26,8 +26,6 @@ const IMG_HEIGHT = 140; // Bigger as requested
 function FlipCard({
     src,
     index,
-    total,
-    phase,
     target,
 }: FlipCardProps) {
     return (
@@ -120,6 +118,11 @@ const IMAGES = [
 
 // Helper for linear interpolation
 const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
+const seededScatterValue = (seed: number, range: number) => {
+    const raw = Math.sin(seed * 9999.91) * 43758.5453;
+    const normalized = raw - Math.floor(raw);
+    return (normalized - 0.5) * range;
+};
 
 export default function IntroAnimation() {
     const [introPhase, setIntroPhase] = useState<AnimationPhase>("scatter");
@@ -238,10 +241,10 @@ export default function IntroAnimation() {
 
     // --- Random Scatter Positions ---
     const scatterPositions = useMemo(() => {
-        return IMAGES.map(() => ({
-            x: (Math.random() - 0.5) * 1500,
-            y: (Math.random() - 0.5) * 1000,
-            rotation: (Math.random() - 0.5) * 180,
+        return IMAGES.map((_, index) => ({
+            x: seededScatterValue(index + 1, 1500),
+            y: seededScatterValue(index + 101, 1000),
+            rotation: seededScatterValue(index + 201, 180),
             scale: 0.6,
             opacity: 0,
         }));
@@ -265,7 +268,6 @@ export default function IntroAnimation() {
 
     // --- Content Opacity ---
     // Fade in content when arc is formed (morphValue > 0.8)
-    const contentOpacity = useTransform(smoothMorph, [0.8, 1], [0, 1]);
     const contentY = useTransform(smoothMorph, [0.8, 1], [20, 0]);
 
     return (
@@ -331,8 +333,6 @@ export default function IntroAnimation() {
 
                             // Responsive Calculations
                             const isMobile = containerSize.width < 768;
-                            const minDimension = Math.min(containerSize.width, containerSize.height);
-
                             // A. Calculate Circle Position
                             // Much larger radius to prevent ANY text overlap
                             // 50% of viewport dimensions with high minimum
@@ -412,8 +412,6 @@ export default function IntroAnimation() {
                                 key={i}
                                 src={src}
                                 index={i}
-                                total={TOTAL_IMAGES}
-                                phase={introPhase} // Pass intro phase for initial animations
                                 target={target}
                             />
                         );

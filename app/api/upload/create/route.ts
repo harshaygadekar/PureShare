@@ -7,6 +7,11 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/db/supabase";
 import { resolveDatabaseUserId } from "@/lib/db/user-resolution";
+import {
+  applyRateLimit,
+  getRateLimitIdentifier,
+  rateLimiters,
+} from "@/lib/middleware/rate-limit";
 import { generateShareLink } from "@/lib/security/share-link";
 import { hashPassword } from "@/lib/security/password";
 import { createShareSchema } from "@/lib/validations/share";
@@ -21,6 +26,15 @@ export async function POST(request: NextRequest) {
   try {
     // Get authenticated user (optional - allows anonymous shares)
     const { userId } = await auth();
+
+    const rateLimitResponse = await applyRateLimit(
+      userId ? rateLimiters.authenticatedUpload : rateLimiters.anonymousUpload,
+      getRateLimitIdentifier(request, userId ?? undefined),
+    );
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     const body = await request.json();
 

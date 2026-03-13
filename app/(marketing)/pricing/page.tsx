@@ -4,15 +4,21 @@
  */
 
 import Link from 'next/link';
-import { Check, Zap, Shield, Clock, Infinity } from 'lucide-react';
+import { Check, Zap, Shield } from 'lucide-react';
+import { FILE_CONFIG, SHARE_CONFIG } from '@/config/constants';
+
+const maxImageMb = Math.round(FILE_CONFIG.maxImageFileSize / 1024 / 1024);
+const maxVideoMb = Math.round(FILE_CONFIG.maxVideoFileSize / 1024 / 1024);
+const maxExpirationDays = Math.max(...SHARE_CONFIG.standardExpirationOptionsHours) / 24;
 
 const features = [
-  { name: 'File uploads', free: '10GB per file', pro: '10GB per file' },
-  { name: 'Expiration', free: 'Up to 7 days', pro: 'Up to 7 days' },
-  { name: 'Download limit', free: 'Up to 100 downloads', pro: 'Unlimited' },
+  { name: 'Image uploads', free: `Up to ${maxImageMb}MB`, pro: 'Larger limits planned' },
+  { name: 'Video uploads', free: `Up to ${maxVideoMb}MB`, pro: 'Larger limits planned' },
+  { name: 'Expiration', free: `Up to ${maxExpirationDays} days`, pro: 'Custom policies planned' },
   { name: 'Password protection', free: true, pro: true },
   { name: 'No account required', free: true, pro: true },
-  { name: 'No tracking', free: true, pro: true },
+  { name: 'Owner analytics', free: true, pro: true },
+  { name: 'Bulk ZIP download', free: true, pro: true },
   { name: 'Priority support', free: false, pro: true },
   { name: 'Custom branding', free: false, pro: true },
 ];
@@ -27,7 +33,7 @@ export default function PricingPage() {
             Simple, transparent pricing
           </h1>
           <p className="mt-4 text-lg text-secondary max-w-2xl mx-auto">
-            PureShare is completely free to use. No subscriptions, no hidden fees, no limits that matter.
+            PureShare is free to use today, with media-type upload limits and expiring links built in.
           </p>
         </div>
       </section>
@@ -49,7 +55,7 @@ export default function PricingPage() {
                 <span className="text-secondary"> / forever</span>
               </div>
               <p className="text-secondary mb-6">
-                Everything you need to share files privately and securely.
+                Share images and video with expiring links, optional passwords, and owner analytics.
               </p>
               <Link
                 href="/"
@@ -75,7 +81,7 @@ export default function PricingPage() {
                 <span className="text-secondary"> / month</span>
               </div>
               <p className="text-secondary mb-6">
-                For power users who need unlimited downloads and priority support.
+                Planned for teams and power users who need larger limits and workflow controls.
               </p>
               <div className="w-full py-3 text-center border border-border text-tertiary font-semibold rounded-lg cursor-not-allowed">
                 Coming Soon
@@ -122,11 +128,6 @@ export default function PricingPage() {
                         ) : (
                           <span className="text-tertiary">—</span>
                         )
-                      ) : feature.pro === 'Unlimited' ? (
-                        <span className="text-primary font-medium flex items-center justify-center gap-1">
-                          <Infinity className="w-4 h-4" />
-                          {feature.pro}
-                        </span>
                       ) : (
                         <span className="text-secondary">{feature.pro}</span>
                       )}
